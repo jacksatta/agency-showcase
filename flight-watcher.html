@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flight Watcher</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0b0e18; color: #cbd5e1;
+  min-height: 100vh; padding: 0 0 90px;
+}
+
+/* Demo banner */
+.demo-banner {
+  background: #131929; border-bottom: 1px solid #1a2236;
+  padding: 7px 24px; display: flex; align-items: center; gap: 10px;
+  font-size: 0.72rem; color: #475569;
+}
+.demo-banner a { color: #475569; text-decoration: none; }
+.demo-banner a:hover { color: #94a3b8; }
+.demo-sep { color: #1e2a45; }
+
+.page-wrap { padding: 28px 24px; }
+
+.page-header { margin-bottom: 28px; }
+.page-header h1 { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; letter-spacing: -0.02em; }
+.page-header p  { font-size: 0.8rem; color: #475569; margin-top: 4px; }
+#meta { font-size: 0.75rem; color: #334155; margin-top: 8px; }
+
+/* ── Section ── */
+.section { margin-bottom: 20px; }
+.section-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 14px; border-radius: 8px;
+  margin-bottom: 10px; position: relative; overflow: hidden;
+}
+.section-header::before {
+  content: ""; position: absolute; inset: 0;
+  background: var(--accent-bg); opacity: 0.06; pointer-events: none;
+}
+.section-header .accent-bar {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--accent); border-radius: 8px 0 0 8px;
+}
+.section-header .icon { font-size: 1rem; line-height: 1; }
+.section-header h2 { font-size: 0.78rem; font-weight: 700; color: #e2e8f0; letter-spacing: 0.04em; text-transform: uppercase; }
+.section-header .desc { font-size: 0.7rem; color: #475569; margin-top: 1px; }
+.section-header .count {
+  margin-left: auto; font-size: 0.62rem; font-weight: 700;
+  background: var(--accent-bg); color: var(--accent);
+  padding: 2px 8px; border-radius: 20px; white-space: nowrap; opacity: 0.9;
+}
+.section-header { cursor: pointer; user-select: none; }
+.sec-chev { font-size: 0.7rem; color: #334155; margin-left: 4px; transition: transform 0.15s; }
+.sec-body.sec-collapsed { display: none; }
+
+.sec-rt     { --accent: #f97316; --accent-bg: #431407; background: #111827; }
+.sec-ow     { --accent: #3b82f6; --accent-bg: #172554; background: #111827; }
+.sec-oj     { --accent: #a78bfa; --accent-bg: #2e1065; background: #111827; }
+
+.section-sep { border: none; border-top: 1px solid #131929; margin: 8px 0; }
+
+/* ── Dashboard panel ── */
+.dashboard-panel {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1px; background: #1a2236;
+  border: 1px solid #1a2236; border-radius: 12px;
+  overflow: hidden; margin-bottom: 24px;
+}
+.dp-group { background: #131929; padding: 14px 18px; }
+.dp-group-label {
+  font-size: 0.6rem; font-weight: 700; color: #334155;
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+}
+.dp-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+.dp-lbl { font-size: 0.68rem; color: #475569; white-space: nowrap; line-height: 1.4; padding-top: 1px; }
+.dp-val { font-size: 0.88rem; font-weight: 700; color: #e2e8f0; white-space: nowrap; line-height: 1.4; }
+.dp-val.fire  { color: #fb923c; }
+.dp-val.watch { color: #60a5fa; }
+.dp-val.oj    { color: #a78bfa; }
+.dp-val.amber { color: #fbbf24; }
+.dp-sub { font-size: 0.62rem; color: #334155; text-align: right; margin: -3px 0 5px; }
+@media (max-width: 640px) {
+  .dashboard-panel { grid-template-columns: 1fr; }
+}
+
+/* Sort / filter bar */
+.controls { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.tab {
+  font-size: 0.75rem; padding: 5px 12px; border-radius: 20px; cursor: pointer;
+  background: #1a2035; color: #475569; border: 1px solid #1e2a45; transition: all 0.15s;
+}
+.tab.active { background: #1e3a8a; color: #93c5fd; border-color: #2563eb; }
+.tab:hover:not(.active) { color: #94a3b8; border-color: #334155; }
+.sort-select {
+  font-size: 0.75rem; background: #1a2035; color: #64748b;
+  border: 1px solid #1e2a45; border-radius: 20px; padding: 4px 10px;
+  cursor: pointer; margin-left: auto;
+}
+
+/* ── Cards grid ── */
+.deals-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+
+.deal-card {
+  background: #131929; border-radius: 12px; padding: 18px;
+  border: 1px solid #1a2236;
+  border-left: 3px solid var(--card-accent, #1a2236);
+  transition: transform 0.12s, box-shadow 0.12s;
+  display: flex; flex-direction: column; gap: 0;
+  position: relative; cursor: pointer;
+}
+.deal-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.deal-card.fire  { --card-accent: #f97316; }
+.deal-card.watch { --card-accent: #3b82f6; }
+.deal-card.est   { --card-accent: #a78bfa; }
+
+.card-top { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.deal-price { font-size: 2rem; font-weight: 800; line-height: 1; }
+.deal-price.fire  { color: #fb923c; }
+.deal-price.watch { color: #60a5fa; }
+.deal-price.est   { color: #a78bfa; }
+.deal-price.none  { color: #64748b; }
+
+.trend {
+  display: inline-flex; align-items: center; gap: 2px;
+  font-size: 0.72rem; font-weight: 700; padding: 2px 6px;
+  border-radius: 4px; white-space: nowrap;
+}
+.trend.down { background: rgba(34,197,94,0.12);  color: #4ade80; }
+.trend.up   { background: rgba(239,68,68,0.12);  color: #f87171; }
+.trend.flat { background: rgba(100,116,139,0.12); color: #64748b; }
+
+.badge {
+  display: inline-block; font-size: 0.62rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  padding: 2px 8px; border-radius: 4px; margin-bottom: 10px;
+  border: 1px solid transparent;
+}
+.badge.fire  { background: rgba(249,115,22,0.12); color: #fb923c; border-color: rgba(249,115,22,0.25); }
+.badge.watch { background: rgba(59,130,246,0.12); color: #60a5fa; border-color: rgba(59,130,246,0.25); }
+.badge.est   { background: rgba(167,139,250,0.12); color: #a78bfa; border-color: rgba(167,139,250,0.25); }
+
+.deal-route { font-size: 0.95rem; font-weight: 600; color: #e2e8f0; margin-bottom: 3px; }
+.deal-dest  { font-size: 0.78rem; color: #64748b; margin-bottom: 12px; }
+
+.meta-grid { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin-bottom: 14px; }
+.meta-label { font-size: 0.7rem; color: #334155; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
+.meta-val   { font-size: 0.75rem; color: #94a3b8; }
+
+.card-divider { border: none; border-top: 1px solid #1a2236; margin: 0 0 12px; }
+
+.book-links { display: flex; gap: 8px; margin-top: auto; flex-wrap: wrap; align-items: center; }
+.book-link {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 0.7rem; color: #475569; text-decoration: none;
+  padding: 4px 8px; border-radius: 6px; border: 1px solid #1e2a45; background: #0f1520;
+  transition: color 0.1s, border-color 0.1s, background 0.1s;
+}
+.book-link:hover { color: #93c5fd; border-color: #2563eb; background: #172554; }
+.book-link svg { width: 11px; height: 11px; flex-shrink: 0; }
+
+.empty { color: #334155; font-size: 0.85rem; padding: 24px 0; text-align: center; }
+
+/* ── Floating tally footer ── */
+#tally-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: #0d1117; border-top: 1px solid #1e2a45;
+  padding: 0 24px;
+  display: none; align-items: center; gap: 12px;
+  min-height: 60px;
+}
+#tally-bar.visible { display: flex; }
+#tally-chips { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; flex: 1; align-items: center; padding: 10px 0; }
+#tally-chips::-webkit-scrollbar { display: none; }
+.tally-chip {
+  display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+  font-size: 0.72rem; font-weight: 600; padding: 4px 8px 4px 10px;
+  border-radius: 20px; border: 1px solid #1e2a45; background: #131929; color: #94a3b8;
+  cursor: default;
+}
+.tally-chip.rt  { border-color: rgba(249,115,22,0.3);  color: #fb923c; background: rgba(249,115,22,0.07); }
+.tally-chip.ow  { border-color: rgba(59,130,246,0.3);  color: #60a5fa; background: rgba(59,130,246,0.07); }
+.tally-chip.oj  { border-color: rgba(167,139,250,0.3); color: #a78bfa; background: rgba(167,139,250,0.07); }
+.chip-remove { font-size: 0.65rem; opacity: 0.5; cursor: pointer; line-height: 1; padding: 1px 2px; }
+.chip-remove:hover { opacity: 1; }
+#tally-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+#tally-total-label { font-size: 0.62rem; color: #334155; text-transform: uppercase; letter-spacing: 0.07em; }
+#tally-total { font-size: 1.3rem; font-weight: 800; color: #f1f5f9; white-space: nowrap; }
+#tally-clear { font-size: 0.7rem; color: #334155; cursor: pointer; padding: 4px 8px; border-radius: 6px; border: 1px solid #1a2236; background: none; }
+#tally-clear:hover { color: #94a3b8; border-color: #334155; }
+
+/* sec expand */
+.sec-expand { margin-top: 10px; text-align: center; }
+.sec-expand-btn {
+  font-size: 0.72rem; color: #334155; cursor: pointer; background: none;
+  border: 1px solid #1a2236; border-radius: 20px; padding: 5px 16px;
+  transition: color 0.1s, border-color 0.1s;
+}
+.sec-expand-btn:hover { color: #64748b; border-color: #334155; }
+.deals-grid:not(.expanded) .card-extra { display: none; }
+</style>
+</head>
+<body>
+
+<!-- Demo banner -->
+<div class="demo-banner">
+  <a href="./index.html">← Back</a>
+  <span class="demo-sep">|</span>
+  <span>⚡ Live demo — snapshot data from April 2026 · real pricing from SerpAPI</span>
+</div>
+
+<div class="page-wrap">
+
+<div class="page-header">
+  <h1>✈️ Flight Watcher</h1>
+  <p>PDX → Europe · Spring &amp; Fall 2026 · Monitors roundtrip, one-way, and open-jaw options</p>
+  <div id="meta">Last checked: Apr 1, 2026 · 42 routes tracked</div>
+</div>
+
+<!-- Dashboard panel -->
+<div class="dashboard-panel">
+  <div class="dp-group">
+    <div class="dp-group-label">✈ Best prices</div>
+    <div class="dp-row">
+      <span class="dp-lbl">Roundtrip PDX → EU</span>
+      <span class="dp-val fire" id="b-rt">$860</span>
+    </div>
+    <div class="dp-row">
+      <span class="dp-lbl">One-way home</span>
+      <span class="dp-val watch" id="b-ow">$540</span>
+    </div>
+    <div class="dp-row">
+      <span class="dp-lbl">Open-jaw est.</span>
+      <span class="dp-val oj" id="b-oj">~$1,210</span>
+    </div>
+  </div>
+  <div class="dp-group">
+    <div class="dp-group-label">🗺 Trip estimate</div>
+    <div class="dp-row">
+      <span class="dp-lbl">RT + one-way home</span>
+      <span class="dp-val fire">$1,400</span>
+    </div>
+    <div class="dp-sub">$860 RT + $540 OW</div>
+    <div class="dp-row">
+      <span class="dp-lbl">Open-jaw</span>
+      <span class="dp-val oj">~$1,210</span>
+    </div>
+    <div class="dp-sub">PDX→MAD…BCN→PDX</div>
+  </div>
+  <div class="dp-group">
+    <div class="dp-group-label">🏠 Monthly budget</div>
+    <div class="dp-row">
+      <span class="dp-lbl">Living/mo (mid)</span>
+      <span class="dp-val amber">$980</span>
+    </div>
+    <div class="dp-row">
+      <span class="dp-lbl">4 wk total</span>
+      <span class="dp-val amber">$3,400</span>
+    </div>
+    <div class="dp-sub">flights + living</div>
+  </div>
+</div>
+
+<hr class="section-sep">
+
+<!-- ── Roundtrip ── -->
+<div class="section" id="section-rt">
+  <div class="section-header sec-rt" onclick="toggleSecBody('rt')">
+    <div class="accent-bar"></div>
+    <span class="icon">🔥</span>
+    <div>
+      <h2>Roundtrip — PDX ↔ Europe</h2>
+      <div class="desc">Fly into nearest airport · fire ≤ $700 · watch ≤ $900 · click card to add to tally</div>
+    </div>
+    <span class="count" id="rt-count">0 routes</span>
+    <span class="sec-chev" id="rt-chev">▾</span>
+  </div>
+  <div class="sec-body" id="rt-body">
+    <div class="controls">
+      <button class="tab active" onclick="setWindow('all',this)">All</button>
+      <button class="tab" onclick="setWindow('Spring 2026',this)">Spring 2026</button>
+      <button class="tab" onclick="setWindow('Fall 2026',this)">Fall 2026</button>
+      <select class="sort-select" id="rt-sort" onchange="renderAll()">
+        <option value="price">Sort: Price ↑</option>
+        <option value="date">Sort: Departure date</option>
+      </select>
+    </div>
+    <div class="deals-grid" id="rt-grid"><div class="empty">Loading…</div></div>
+    <div class="sec-expand" id="rt-expand" style="display:none">
+      <button class="sec-expand-btn" onclick="toggleSection('rt')" id="rt-expand-btn"></button>
+    </div>
+  </div>
+</div>
+
+<hr class="section-sep">
+
+<!-- ── One-way home ── -->
+<div class="section" id="section-ow">
+  <div class="section-header sec-ow" onclick="toggleSecBody('ow')">
+    <div class="accent-bar"></div>
+    <span class="icon">🏠</span>
+    <div>
+      <h2>One-Way Home — EU City → PDX</h2>
+      <div class="desc">Exit airport after your loop · pairs with a Roundtrip selection above</div>
+    </div>
+    <span class="count" id="ow-count">0 routes</span>
+    <span class="sec-chev" id="ow-chev">▾</span>
+  </div>
+  <div class="sec-body" id="ow-body">
+    <div class="deals-grid" id="ow-grid"><div class="empty">Loading…</div></div>
+    <div class="sec-expand" id="ow-expand" style="display:none">
+      <button class="sec-expand-btn" onclick="toggleSection('ow')" id="ow-expand-btn"></button>
+    </div>
+  </div>
+</div>
+
+<hr class="section-sep">
+
+<!-- ── Open-jaw ── -->
+<div class="section" id="section-oj">
+  <div class="section-header sec-oj" onclick="toggleSecBody('oj')">
+    <div class="accent-bar"></div>
+    <span class="icon">↗</span>
+    <div>
+      <h2>Open-Jaw Estimates</h2>
+      <div class="desc">Fly in one city, home from another — alternative to RT+OW</div>
+    </div>
+    <span class="count" id="oj-count">0 combos</span>
+    <span class="sec-chev" id="oj-chev">▾</span>
+  </div>
+  <div class="sec-body" id="oj-body">
+    <div class="deals-grid" id="oj-grid"><div class="empty">Loading…</div></div>
+  </div>
+</div>
+
+</div><!-- /page-wrap -->
+
+<!-- Floating tally footer -->
+<div id="tally-bar">
+  <div id="tally-chips"></div>
+  <div id="tally-right">
+    <div>
+      <div id="tally-total-label">Total selected</div>
+      <div id="tally-total">$0</div>
+    </div>
+    <button id="tally-clear" onclick="clearTally()">Clear all</button>
+  </div>
+</div>
+
+<script>
+// ── Inline baked deals data (from April 2026 snapshot) ───────────────────────
+const STATE = {
+  lastChecked: "2026-04-01T00:00:40.805Z",
+  source: "serpapi",
+  deals: [
+    // PDX → BOD (Bordeaux) roundtrips
+    { type:"roundtrip", route:"PDX → BOD → PDX", destination:"BOD", destinationLabel:"Bordeaux (~1.5h to SW France)", window:"Spring 2026", departureDate:"2026-04-15", returnDate:"2026-05-31", price:1599, prevPrice:4137, tier:null },
+    { type:"roundtrip", route:"PDX → BOD → PDX", destination:"BOD", destinationLabel:"Bordeaux (~1.5h to SW France)", window:"Spring 2026", departureDate:"2026-04-15", returnDate:"2026-05-31", price:1717, prevPrice:null, tier:null },
+    { type:"roundtrip", route:"PDX → BOD → PDX", destination:"BOD", destinationLabel:"Bordeaux (~1.5h to SW France)", window:"Spring 2026", departureDate:"2026-04-15", returnDate:"2026-05-31", price:1948, prevPrice:null, tier:null },
+    { type:"roundtrip", route:"PDX → BOD → PDX", destination:"BOD", destinationLabel:"Bordeaux (~1.5h to SW France)", window:"Fall 2026",   departureDate:"2026-09-01", returnDate:"2026-10-31", price:1475, prevPrice:1816, tier:null },
+    { type:"roundtrip", route:"PDX → BOD → PDX", destination:"BOD", destinationLabel:"Bordeaux (~1.5h to SW France)", window:"Fall 2026",   departureDate:"2026-09-01", returnDate:"2026-10-31", price:1551, prevPrice:null, tier:null },
+    // PDX → CDG (Paris) roundtrips
+    { type:"roundtrip", route:"PDX → CDG → PDX", destination:"CDG", destinationLabel:"Paris CDG (TGV south ~4h)", window:"Spring 2026", departureDate:"2026-04-15", returnDate:"2026-05-31", price:1272, prevPrice:6581, tier:null },
+    { type:"roundtrip", route:"PDX → CDG → PDX", destination:"CDG", destinationLabel:"Paris CDG (TGV south ~4h)", window:"Spring 2026", departureDate:"2026-04-15", returnDate:"2026-05-31", price:1276, prevPrice:null, tier:null },
+    { type:"roundtrip", route:"PDX → CDG → PDX", destination:"CDG", destinationLabel:"Paris CDG (TGV south ~4h)", window:"Spring 2026", departureDate:"2026-04-15", returnDate:"2026-05-31", price:1377, prevPrice:null, tier:null },
+    { type:"roundtrip", route:"PDX → CDG → PDX", destination:"CDG", destinationLabel:"Paris CDG (TGV south ~4h)", window:"Fall 2026",   departureDate:"2026-09-01", returnDate:"2026-10-31", price:890,  prevPrice:1020, tier:"watch" },
+    { type:"roundtrip", route:"PDX → CDG → PDX", destination:"CDG", destinationLabel:"Paris CDG (TGV south ~4h)", window:"Fall 2026",   departureDate:"2026-09-01", returnDate:"2026-10-31", price:980,  prevPrice:null, tier:null },
+    { type:"roundtrip", route:"PDX → CDG → PDX", destination:"CDG", destinationLabel:"Paris CDG (TGV south ~4h)", window:"Fall 2026",   departureDate:"2026-09-01", returnDate:"2026-10-31", price:1020, prevPrice:null, tier:null },
+    // PDX → MAD (Madrid) roundtrips
+    { type:"roundtrip", route:"PDX → MAD → PDX", destination:"MAD", destinationLabel:"Madrid (Spain approach)", window:"Spring 2026", departureDate:"2026-04-15", returnDate:"2026-05-31", price:1235, prevPrice:1782, tier:null },
+    { type:"roundtrip", route:"PDX → MAD → PDX", destination:"MAD", destinationLabel:"Madrid (Spain approach)", window:"Spring 2026", departureDate:"2026-04-15", returnDate:"2026-05-31", price:1240, prevPrice:null, tier:null },
+    { type:"roundtrip", route:"PDX → MAD → PDX", destination:"MAD", destinationLabel:"Madrid (Spain approach)", window:"Spring 2026", departureDate:"2026-04-15", returnDate:"2026-05-31", price:1425, prevPrice:null, tier:null },
+    { type:"roundtrip", route:"PDX → MAD → PDX", destination:"MAD", destinationLabel:"Madrid (Spain approach)", window:"Fall 2026",   departureDate:"2026-09-01", returnDate:"2026-10-31", price:860,  prevPrice:1208, tier:"watch" },
+    { type:"roundtrip", route:"PDX → MAD → PDX", destination:"MAD", destinationLabel:"Madrid (Spain approach)", window:"Fall 2026",   departureDate:"2026-09-01", returnDate:"2026-10-31", price:880,  prevPrice:null, tier:"watch" },
+    { type:"roundtrip", route:"PDX → MAD → PDX", destination:"MAD", destinationLabel:"Madrid (Spain approach)", window:"Fall 2026",   departureDate:"2026-09-01", returnDate:"2026-10-31", price:997,  prevPrice:null, tier:null },
+    { type:"roundtrip", route:"PDX → MAD → PDX", destination:"MAD", destinationLabel:"Madrid (Spain approach)", window:"Fall 2026",   departureDate:"2026-09-01", returnDate:"2026-10-31", price:1066, prevPrice:null, tier:null },
+  ],
+  oneways: [
+    { type:"oneway", route:"BOD → PDX", destination:"BOD", destinationLabel:"Bordeaux out", window:"Fall 2026", departureDate:"2026-10-31", price:620, prevPrice:780, tier:null },
+    { type:"oneway", route:"BOD → PDX", destination:"BOD", destinationLabel:"Bordeaux out", window:"Spring 2026", departureDate:"2026-05-31", price:710, prevPrice:null, tier:null },
+    { type:"oneway", route:"CDG → PDX", destination:"CDG", destinationLabel:"Paris CDG out", window:"Fall 2026", departureDate:"2026-10-31", price:540, prevPrice:680, tier:"watch" },
+    { type:"oneway", route:"CDG → PDX", destination:"CDG", destinationLabel:"Paris CDG out", window:"Spring 2026", departureDate:"2026-05-31", price:590, prevPrice:null, tier:null },
+    { type:"oneway", route:"MAD → PDX", destination:"MAD", destinationLabel:"Madrid out", window:"Fall 2026", departureDate:"2026-10-31", price:565, prevPrice:820, tier:"watch" },
+    { type:"oneway", route:"MAD → PDX", destination:"MAD", destinationLabel:"Madrid out", window:"Spring 2026", departureDate:"2026-05-31", price:640, prevPrice:null, tier:null },
+    { type:"oneway", route:"BCN → PDX", destination:"BCN", destinationLabel:"Barcelona out", window:"Fall 2026", departureDate:"2026-10-31", price:610, prevPrice:null, tier:null },
+  ],
+  openjaw: [
+    { type:"openjaw", inDest:"MAD", outExit:"CDG", route:"PDX→MAD … CDG→PDX", window:"Fall 2026", departureDate:"2026-09-01", returnDate:"2026-10-31", estimatedTotal:1210, tier:"watch" },
+    { type:"openjaw", inDest:"MAD", outExit:"BCN", route:"PDX→MAD … BCN→PDX", window:"Fall 2026", departureDate:"2026-09-01", returnDate:"2026-10-31", estimatedTotal:1290, tier:null },
+    { type:"openjaw", inDest:"CDG", outExit:"MAD", route:"PDX→CDG … MAD→PDX", window:"Fall 2026", departureDate:"2026-09-01", returnDate:"2026-10-31", estimatedTotal:1340, tier:null },
+    { type:"openjaw", inDest:"BOD", outExit:"MAD", route:"PDX→BOD … MAD→PDX", window:"Spring 2026", departureDate:"2026-04-15", returnDate:"2026-05-31", estimatedTotal:1580, tier:null },
+  ]
+};
+
+const ICONS = {
+  plane:  `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M14.5 2.5a1.5 1.5 0 00-2.12 0L9 5.88 3.5 3 2 4.5l4 3-2.5 2.5H2l-1 1 2.5.5.5 2.5 1-1v-1.5l2.5-2.5 3 4 1.5-1.5L9.12 7l3.38-3.38a1.5 1.5 0 000-2.12z"/></svg>`,
+  matrix: `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h5v5H2V2zm7 0h5v5H9V2zM2 9h5v5H2V9zm7 0h5v5H9V9z"/></svg>`,
+  search: `<svg viewBox="0 0 16 16" fill="currentColor"><path d="M11.74 10.33a6 6 0 10-1.41 1.41l3.47 3.47 1.41-1.41-3.47-3.47zM6 10A4 4 0 116 2a4 4 0 010 8z"/></svg>`,
+};
+
+const INITIAL_SHOW = 3;
+const sectionExpanded = { rt: false, ow: false, oj: false };
+const selected = new Map();
+let activeWindow = "all";
+let selectedRtKey = null, selectedOwKey = null, selectedOjKey = null;
+
+function bookLinks(origin, dest, dep, ret) {
+  const kayakRet = ret ? `/${ret}` : "";
+  return `
+    <a class="book-link" href="https://www.google.com/flights?hl=en" target="_blank" onclick="event.stopPropagation()">${ICONS.plane} Flights</a>
+    <a class="book-link" href="https://matrix.itasoftware.com" target="_blank" onclick="event.stopPropagation()">${ICONS.matrix} ITA</a>
+    <a class="book-link" href="https://www.kayak.com/flights/${origin}-${dest}/${dep}${kayakRet}" target="_blank" onclick="event.stopPropagation()">${ICONS.search} Kayak</a>`;
+}
+
+function cardTier(deal) {
+  if (deal.tier === 'fire') return 'fire';
+  if (deal.tier === 'watch') return 'watch';
+  // auto-tier roundtrip by price
+  if (deal.type === 'roundtrip') {
+    if (deal.price <= 700) return 'fire';
+    if (deal.price <= 900) return 'watch';
+  }
+  if (deal.type === 'oneway') {
+    if (deal.price <= 350) return 'fire';
+    if (deal.price <= 600) return 'watch';
+  }
+  if (deal.type === 'openjaw') {
+    if (deal.estimatedTotal <= 900) return 'fire';
+    if (deal.estimatedTotal <= 1200) return 'watch';
+  }
+  return null;
+}
+
+function trendTag(deal) {
+  const p = deal.price ?? deal.estimatedTotal;
+  const prev = deal.prevPrice;
+  if (!prev) return '';
+  const pct = ((p - prev) / prev * 100).toFixed(0);
+  const dir = p < prev ? 'down' : p > prev ? 'up' : 'flat';
+  const label = p < prev ? `▼ ${Math.abs(pct)}%` : `▲ ${Math.abs(pct)}%`;
+  return `<span class="trend ${dir}">${label}</span>`;
+}
+
+function renderDealCard(deal, key, type) {
+  const tier  = cardTier(deal);
+  const price = deal.price ?? deal.estimatedTotal;
+  const isSelected = selected.has(key);
+  return `<div class="deal-card${tier?' '+tier:''}${isSelected?' selected':''}" data-key="${key}" onclick="toggleCard('${key}','${deal.route}',${price},'${type}')">
+    <div class="card-top">
+      <span class="deal-price ${tier||'none'}">$${price.toLocaleString()}</span>
+      ${trendTag(deal)}
+    </div>
+    ${tier ? `<span class="badge ${tier}">${tier === 'fire' ? '🔥 Fire deal' : '👁 Watch'}</span>` : ''}
+    <div class="deal-route">${deal.route}</div>
+    <div class="deal-dest">${deal.destinationLabel}</div>
+    <div class="meta-grid">
+      <span class="meta-label">Window</span><span class="meta-val">${deal.window}</span>
+      ${deal.departureDate ? `<span class="meta-label">Depart</span><span class="meta-val">${deal.departureDate}</span>` : ''}
+      ${deal.returnDate ? `<span class="meta-label">Return</span><span class="meta-val">${deal.returnDate}</span>` : ''}
+    </div>
+    <hr class="card-divider">
+    <div class="book-links">
+      ${bookLinks('PDX', deal.destination, deal.departureDate || '', deal.returnDate || '')}
+    </div>
+  </div>`;
+}
+
+function renderAll() {
+  const sort = document.getElementById('rt-sort').value;
+  let rtDeals = [...STATE.deals];
+  let owDeals = [...STATE.oneways];
+  let ojDeals = [...STATE.openjaw];
+
+  if (activeWindow !== 'all') {
+    rtDeals = rtDeals.filter(d => d.window === activeWindow);
+    owDeals = owDeals.filter(d => d.window === activeWindow);
+    ojDeals = ojDeals.filter(d => d.window === activeWindow);
+  }
+  if (sort === 'price') {
+    rtDeals.sort((a,b) => a.price - b.price);
+    owDeals.sort((a,b) => a.price - b.price);
+    ojDeals.sort((a,b) => a.estimatedTotal - b.estimatedTotal);
+  } else {
+    rtDeals.sort((a,b) => new Date(a.departureDate) - new Date(b.departureDate));
+    owDeals.sort((a,b) => new Date(a.departureDate) - new Date(b.departureDate));
+  }
+
+  document.getElementById('rt-count').textContent = rtDeals.length + ' routes';
+  document.getElementById('ow-count').textContent = owDeals.length + ' routes';
+  document.getElementById('oj-count').textContent = ojDeals.length + ' combos';
+
+  // RT
+  document.getElementById('rt-grid').innerHTML = rtDeals.length
+    ? rtDeals.map((d, i) => `<div${i >= INITIAL_SHOW ? ' class="card-extra"':''}>${renderDealCard(d,'rt-'+i,'rt')}</div>`).join('')
+    : '<div class="empty">No routes for selected window</div>';
+  setupExpand('rt', rtDeals.length);
+
+  // OW
+  document.getElementById('ow-grid').innerHTML = owDeals.length
+    ? owDeals.map((d, i) => `<div${i >= INITIAL_SHOW ? ' class="card-extra"':''}>${renderDealCard(d,'ow-'+i,'ow')}</div>`).join('')
+    : '<div class="empty">No one-ways for selected window</div>';
+  setupExpand('ow', owDeals.length);
+
+  // OJ
+  document.getElementById('oj-grid').innerHTML = ojDeals.length
+    ? ojDeals.map((d, i) => renderDealCard(d,'oj-'+i,'oj')).join('')
+    : '<div class="empty">No open-jaw estimates</div>';
+}
+
+function setupExpand(sec, total) {
+  const wrap = document.getElementById(`${sec}-expand`);
+  const btn  = document.getElementById(`${sec}-expand-btn`);
+  const extras = total - INITIAL_SHOW;
+  if (extras <= 0) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  btn.textContent = sectionExpanded[sec] ? '▴ Show fewer' : `▾ Show ${extras} more`;
+}
+
+function toggleSection(sec) {
+  sectionExpanded[sec] = !sectionExpanded[sec];
+  const grid = document.getElementById(`${sec}-grid`);
+  const btn  = document.getElementById(`${sec}-expand-btn`);
+  const extras = grid.querySelectorAll('.card-extra');
+  if (sectionExpanded[sec]) { grid.classList.add('expanded'); btn.textContent = '▴ Show fewer'; }
+  else { grid.classList.remove('expanded'); btn.textContent = `▾ Show ${extras.length} more`; }
+}
+
+function toggleSecBody(sec) {
+  const body = document.getElementById(`${sec}-body`);
+  const chev = document.getElementById(`${sec}-chev`);
+  body.classList.toggle('sec-collapsed');
+  chev.textContent = body.classList.contains('sec-collapsed') ? '▸' : '▾';
+}
+
+function setWindow(win, btn) {
+  activeWindow = win;
+  document.querySelectorAll('.controls .tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll();
+}
+
+// Tally
+function toggleCard(key, label, price, type) {
+  if (type === 'rt' && selectedRtKey && selectedRtKey !== key) {
+    selected.delete(selectedRtKey); selectedRtKey = null;
+  }
+  if (type === 'ow' && selectedOwKey && selectedOwKey !== key) {
+    selected.delete(selectedOwKey); selectedOwKey = null;
+  }
+  if (type === 'oj' && selectedOjKey && selectedOjKey !== key) {
+    selected.delete(selectedOjKey); selectedOjKey = null;
+  }
+
+  if (selected.has(key)) {
+    selected.delete(key);
+    if (type === 'rt') selectedRtKey = null;
+    if (type === 'ow') selectedOwKey = null;
+    if (type === 'oj') selectedOjKey = null;
+  } else {
+    selected.set(key, { label, price, type });
+    if (type === 'rt') selectedRtKey = key;
+    if (type === 'ow') selectedOwKey = key;
+    if (type === 'oj') selectedOjKey = key;
+  }
+
+  document.querySelectorAll('.deal-card[data-key]').forEach(el =>
+    el.classList.toggle('selected', selected.has(el.dataset.key)));
+  renderTally();
+}
+
+function removeFromTally(key) {
+  const item = selected.get(key);
+  selected.delete(key);
+  if (item?.type === 'rt') selectedRtKey = null;
+  if (item?.type === 'ow') selectedOwKey = null;
+  if (item?.type === 'oj') selectedOjKey = null;
+  document.querySelectorAll(`.deal-card[data-key="${key}"]`).forEach(el => el.classList.remove('selected'));
+  renderTally();
+}
+
+function clearTally() {
+  selected.clear();
+  selectedRtKey = null; selectedOwKey = null; selectedOjKey = null;
+  document.querySelectorAll('.deal-card.selected').forEach(el => el.classList.remove('selected'));
+  renderTally();
+}
+
+function renderTally() {
+  const bar = document.getElementById('tally-bar');
+  if (!selected.size) { bar.classList.remove('visible'); return; }
+  bar.classList.add('visible');
+  let total = 0;
+  const chips = [...selected.entries()].map(([key, item]) => {
+    total += item.price;
+    return `<div class="tally-chip ${item.type}">
+      ${item.label}  · $${item.price.toLocaleString()}
+      <span class="chip-remove" onclick="removeFromTally('${key}')">✕</span>
+    </div>`;
+  });
+  document.getElementById('tally-chips').innerHTML = chips.join('');
+  document.getElementById('tally-total').textContent = '$' + total.toLocaleString();
+}
+
+// Init
+renderAll();
+</script>
+</body>
+</html>

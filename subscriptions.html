@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SaaS Stack Tracker — Demo</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0b0e18; color: #cbd5e1;
+  min-height: 100vh; padding: 0 0 90px;
+}
+
+/* Demo banner */
+.demo-banner {
+  background: #131929; border-bottom: 1px solid #1a2236;
+  padding: 7px 24px; display: flex; align-items: center; gap: 10px;
+  font-size: 0.72rem; color: #475569;
+}
+.demo-banner a { color: #475569; text-decoration: none; }
+.demo-banner a:hover { color: #94a3b8; }
+.demo-sep { color: #1e2a45; }
+
+.page-wrap { padding: 28px 24px; }
+
+.page-header { margin-bottom: 28px; }
+.page-header h1 { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; letter-spacing: -0.02em; }
+.page-header p  { font-size: 0.8rem; color: #475569; margin-top: 4px; }
+#meta { font-size: 0.75rem; color: #334155; margin-top: 8px; }
+
+/* ── Stats bar ── */
+.stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.stat {
+  background: #131929; border: 1px solid #1a2236;
+  border-radius: 10px; padding: 12px 16px; min-width: 120px;
+}
+.stat-value { font-size: 1.4rem; font-weight: 800; color: #f1f5f9; line-height: 1; }
+.stat-label { font-size: 0.62rem; color: #475569; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+.stat-monthly  .stat-value { color: #a78bfa; }
+.stat-annual   .stat-value { color: #38bdf8; }
+.stat-active   .stat-value { color: #34d399; }
+.stat-savings  .stat-value { color: #f97316; }
+
+/* ── Cut Planner ── */
+.cut-planner {
+  background: #111827; border: 1px solid #1e293b;
+  border-left: 3px solid #f97316;
+  border-radius: 10px; margin-bottom: 24px; overflow: hidden;
+}
+.cut-planner-hdr {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 18px; cursor: pointer; user-select: none;
+  transition: opacity 0.12s;
+}
+.cut-planner-hdr:hover { opacity: 0.88; }
+.cut-planner-icon { font-size: 1.1rem; flex-shrink: 0; }
+.cut-planner-titles { flex: 1; min-width: 0; }
+.cut-planner-title { font-size: 0.82rem; font-weight: 700; color: #f1f5f9; }
+.cut-planner-hint  { font-size: 0.68rem; color: #475569; margin-top: 1px; }
+.cut-planner-live { display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+.cut-planner-save { font-size: 1rem; font-weight: 800; color: #34d399; white-space: nowrap; transition: color 0.2s; }
+.cut-planner-save.zero { color: #334155; }
+.cut-planner-save-yr { font-size: 0.62rem; color: #475569; white-space: nowrap; }
+.cut-planner-chev { font-size: 0.55rem; color: #334155; margin-left: 4px; flex-shrink: 0; transition: transform 0.18s; }
+.cut-planner.collapsed .cut-planner-chev { transform: rotate(-90deg); }
+
+.cut-body {
+  max-height: 600px; overflow: hidden; opacity: 1;
+  transition: max-height 0.22s ease, opacity 0.18s ease;
+  padding: 0 18px 16px;
+}
+.cut-planner.collapsed .cut-body { max-height: 0; opacity: 0; padding-bottom: 0; }
+
+.cut-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.cut-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 11px 4px 9px; border-radius: 99px;
+  border: 1px solid #1e293b; background: #0d1117;
+  font-size: 0.68rem; color: #94a3b8;
+  cursor: pointer; user-select: none; transition: all 0.14s; white-space: nowrap;
+}
+.cut-chip:hover { border-color: #334155; color: #cbd5e1; }
+.cut-chip.marked { background: rgba(239,68,68,0.09); border-color: rgba(239,68,68,0.38); color: #f87171; }
+.cut-chip.marked .chip-name { text-decoration: line-through; opacity: 0.7; }
+.cut-chip .chip-amt { font-weight: 700; margin-left: 2px; }
+.cut-chip.marked .chip-amt { text-decoration: line-through; }
+.cut-chip .chip-x { font-size: 0.6rem; opacity: 0; margin-left: 1px; transition: opacity 0.12s; }
+.cut-chip.marked .chip-x { opacity: 1; }
+.cut-chip-reset {
+  padding: 4px 11px; border-radius: 99px; border: 1px dashed #1e293b;
+  background: transparent; font-size: 0.65rem; color: #334155;
+  cursor: pointer; transition: all 0.14s; white-space: nowrap;
+}
+.cut-chip-reset:hover { border-color: #334155; color: #64748b; }
+
+.cut-bar-wrap { margin-bottom: 14px; }
+.cut-bar-labels { display: flex; justify-content: space-between; font-size: 0.62rem; color: #334155; margin-bottom: 5px; }
+.cut-bar-track { height: 8px; background: #1e293b; border-radius: 99px; overflow: hidden; position: relative; }
+.cut-bar-keep { height: 100%; background: #22c55e; border-radius: 99px; transition: width 0.3s ease; }
+.cut-bar-cut { position: absolute; top: 0; right: 0; height: 100%; background: rgba(239,68,68,0.5); border-radius: 0 99px 99px 0; transition: width 0.3s ease; }
+
+.cut-result { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.72rem; color: #475569; }
+.cut-res-before { color: #475569; }
+.cut-res-arrow  { color: #334155; font-size: 0.8rem; }
+.cut-res-after  { font-weight: 700; color: #f1f5f9; }
+.cut-res-save   { font-weight: 700; color: #34d399; }
+
+/* ── Section ── */
+.section { margin-bottom: 36px; }
+.section-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 18px; border-radius: 10px;
+  margin-bottom: 0; position: relative; overflow: hidden;
+  background: #111827; cursor: pointer; user-select: none;
+  transition: opacity 0.1s;
+}
+.section-header:hover { opacity: 0.9; }
+.section-header::before {
+  content: ""; position: absolute; inset: 0;
+  background: var(--accent-bg); opacity: 0.06; pointer-events: none;
+}
+.section-header .accent-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--accent); border-radius: 10px 0 0 10px; }
+.section-header .sec-icon { font-size: 1.1rem; }
+.section-header h2 { font-size: 0.82rem; font-weight: 700; color: #e2e8f0; letter-spacing: 0.04em; text-transform: uppercase; }
+.section-header .sec-desc { font-size: 0.72rem; color: #475569; margin-top: 1px; }
+.section-header .sec-total { margin-left: auto; font-size: 0.72rem; font-weight: 700; color: var(--accent); white-space: nowrap; }
+.section-header .sec-count { font-size: 0.6rem; font-weight: 700; background: rgba(255,255,255,0.07); color: #64748b; padding: 2px 8px; border-radius: 20px; white-space: nowrap; margin-left: 8px; }
+.sec-chev { font-size: 0.55rem; color: #334155; margin-left: 4px; flex-shrink: 0; transition: transform 0.18s ease; }
+.section.collapsed .sec-chev { transform: rotate(-90deg); }
+
+.section-body { overflow: hidden; max-height: 2000px; transition: max-height 0.22s ease, opacity 0.18s ease; opacity: 1; margin-top: 12px; }
+.section.collapsed .section-body { max-height: 0; opacity: 0; margin-top: 0; }
+
+.sec-devtools     { --accent: #fb923c; --accent-bg: #431407; }
+.sec-design       { --accent: #f97316; --accent-bg: #431407; }
+.sec-productivity { --accent: #22c55e; --accent-bg: #14532d; }
+.sec-cloud        { --accent: #38bdf8; --accent-bg: #0c2a4a; }
+.sec-security     { --accent: #ef4444; --accent-bg: #450a0a; }
+.sec-streaming    { --accent: #e879f9; --accent-bg: #3b0764; }
+.sec-comms        { --accent: #a78bfa; --accent-bg: #2e1065; }
+.sec-other        { --accent: #64748b; --accent-bg: #0f172a; }
+
+/* ── Table ── */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+thead th {
+  text-align: left; padding: 7px 10px;
+  font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.07em; color: #334155; border-bottom: 1px solid #1a2236; white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid #0f172a; transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: rgba(255,255,255,0.02); }
+td { padding: 9px 10px; vertical-align: middle; }
+
+.td-vendor { font-weight: 600; color: #f1f5f9; }
+.td-amount { font-weight: 700; color: #34d399; white-space: nowrap; }
+.td-amount-guess { font-weight: 600; color: #64748b; font-style: italic; white-space: nowrap; border-bottom: 1px dotted #334155; }
+.td-date   { color: #475569; font-size: 0.72rem; white-space: nowrap; }
+.td-notes  { font-size: 0.68rem; color: #475569; max-width: 200px; line-height: 1.4; }
+
+.badge {
+  display: inline-block; font-size: 0.58rem; font-weight: 700;
+  padding: 2px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.badge-monthly    { background: rgba(167,139,250,0.15); color: #a78bfa; }
+.badge-annual     { background: rgba(56,189,248,0.15);  color: #38bdf8; }
+.badge-usagebased { background: rgba(249,115,22,0.15);  color: #f97316; }
+
+tr.subtotal td { border-top: 1px solid #1e293b; padding-top: 8px; padding-bottom: 8px; background: rgba(255,255,255,0.02); }
+tr.subtotal .sub-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #334155; }
+tr.subtotal .sub-mo { font-weight: 700; color: #94a3b8; white-space: nowrap; }
+tr.subtotal .sub-ann { font-size: 0.65rem; color: #334155; white-space: nowrap; }
+
+.search-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 20px; }
+.search {
+  background: #131929; border: 1px solid #1e293b; border-radius: 8px;
+  color: #e2e8f0; font-size: 0.75rem; padding: 6px 12px; outline: none; width: 220px;
+}
+.search:focus { border-color: #334155; }
+.search-hint { font-size: 0.68rem; color: #1e293b; }
+
+/* ── Sticky footer ── */
+#footer-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: #0d1117; border-top: 1px solid #1e2a45;
+  padding: 0 20px;
+  display: flex; align-items: center; gap: 16px;
+  min-height: 62px;
+}
+#footer-tally { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; flex: 1; align-items: center; padding: 10px 0; }
+#footer-tally::-webkit-scrollbar { display: none; }
+.tally-chip { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; font-size: 0.7rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; border: 1px solid #1e2a45; background: #131929; color: #64748b; }
+.tally-chip.mo  { border-color: rgba(167,139,250,0.3); color: #a78bfa; background: rgba(167,139,250,0.07); }
+.tally-chip.yr  { border-color: rgba(56,189,248,0.3);  color: #38bdf8; background: rgba(56,189,248,0.07); }
+.tally-chip.act { border-color: rgba(52,211,153,0.3);  color: #34d399; background: rgba(52,211,153,0.07); }
+
+@media (max-width: 640px) {
+  body { padding-bottom: 60px; }
+  .stats { gap: 8px; }
+  .stat { padding: 10px 12px; min-width: 100px; }
+  .stat-value { font-size: 1.2rem; }
+  .hide-mobile { display: none; }
+  .search { width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<!-- Demo banner -->
+<div class="demo-banner">
+  <a href="./index.html">← Back</a>
+  <span class="demo-sep">|</span>
+  <span>⚡ Demo data — illustrative SaaS stack for a solo product/design studio</span>
+</div>
+
+<div class="page-wrap">
+
+<div class="page-header">
+  <h1>💳 SaaS Stack Tracker — Demo</h1>
+  <p>Subscription spend overview · Cut Planner · grouped by category</p>
+  <p id="meta">12 active subscriptions</p>
+</div>
+
+<div class="stats" id="stats-bar"></div>
+
+<div id="savings-wrap"></div>
+
+<div class="search-bar">
+  <input class="search" type="text" id="search" placeholder="Search vendors, notes…">
+  <span class="search-hint" id="match-count"></span>
+</div>
+
+<div id="sections"></div>
+
+</div><!-- /page-wrap -->
+
+<div id="footer-bar">
+  <div id="footer-tally"></div>
+</div>
+
+<script>
+const TODAY = new Date();
+TODAY.setHours(0,0,0,0);
+
+// ── Demo SaaS stack data ─────────────────────────────────────────────────────
+const DATA = {
+  lastChecked: "2026-04-07T00:00:00.000Z",
+  subscriptions: [
+    { id:"s01",  vendor:"Adobe CC",   category:"Design",       amount:54.99, currency:"USD", cadence:"monthly", next_charge:"2026-05-01", status:"active", notes:"All Apps plan" },
+    { id:"s02",  vendor:"AWS",        category:"Cloud",        amount:null,  currency:"USD", cadence:"usage-based", next_charge:null, status:"active", notes:"~$40/mo · S3, Lambda, CloudFront usage" },
+    { id:"s03",  vendor:"Figma",      category:"Design",       amount:45.00, currency:"USD", cadence:"monthly", next_charge:"2026-05-08", status:"active", notes:"Professional plan" },
+    { id:"s04",  vendor:"GitHub",     category:"Dev Tools",    amount:4.00,  currency:"USD", cadence:"monthly", next_charge:"2026-05-12", status:"active", notes:"Pro plan" },
+    { id:"s05",  vendor:"Linear",     category:"Productivity", amount:8.00,  currency:"USD", cadence:"monthly", next_charge:"2026-05-15", status:"active", notes:"Member plan" },
+    { id:"s06",  vendor:"Loom",       category:"Productivity", amount:12.50, currency:"USD", cadence:"annual",  next_charge:"2027-01-10", status:"active", notes:"Business annual — $150/yr" },
+    { id:"s07",  vendor:"Notion",     category:"Productivity", amount:16.00, currency:"USD", cadence:"monthly", next_charge:"2026-05-03", status:"active", notes:"Plus plan" },
+    { id:"s08",  vendor:"1Password",  category:"Security",     amount:3.00,  currency:"USD", cadence:"monthly", next_charge:"2026-05-20", status:"active", notes:"Individual plan" },
+    { id:"s09",  vendor:"Slack",      category:"Comms",        amount:7.25,  currency:"USD", cadence:"annual",  next_charge:"2027-02-01", status:"active", notes:"Pro annual — $87/yr" },
+    { id:"s10",  vendor:"Spotify",    category:"Streaming",    amount:11.99, currency:"USD", cadence:"monthly", next_charge:"2026-05-05", status:"active", notes:"Premium Individual" },
+    { id:"s11",  vendor:"Vercel",     category:"Dev Tools",    amount:20.00, currency:"USD", cadence:"monthly", next_charge:"2026-05-01", status:"active", notes:"Pro plan" },
+    { id:"s12",  vendor:"Zoom",       category:"Comms",        amount:13.33, currency:"USD", cadence:"annual",  next_charge:"2027-03-15", status:"active", notes:"Pro annual — $160/yr" },
+  ],
+  summary: {
+    active_count: 12
+  }
+};
+
+// ── Sections config ──────────────────────────────────────────────────────────
+const SECTIONS = [
+  { key:"Design",       icon:"🎨", cls:"sec-design",       desc:"Design and creative software" },
+  { key:"Dev Tools",    icon:"🛠", cls:"sec-devtools",     desc:"Developer tools and platforms" },
+  { key:"Cloud",        icon:"☁️", cls:"sec-cloud",        desc:"Cloud infrastructure and hosting" },
+  { key:"Productivity", icon:"⚡", cls:"sec-productivity", desc:"Productivity and workflow tools" },
+  { key:"Comms",        icon:"💬", cls:"sec-comms",        desc:"Communication and video" },
+  { key:"Security",     icon:"🔒", cls:"sec-security",     desc:"Security and access management" },
+  { key:"Streaming",    icon:"📺", cls:"sec-streaming",    desc:"Media and entertainment" },
+];
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(dateStr); d.setHours(0,0,0,0);
+  return Math.round((d - TODAY) / 86400000);
+}
+
+function cadenceBadge(c) {
+  const k = (c ?? "unknown").toLowerCase().replace(/[^a-z]/g, "");
+  const labels = { monthly:"Mo", annual:"Annual", usagebased:"Usage" };
+  return `<span class="badge badge-${k}">${labels[k] ?? c}</span>`;
+}
+
+function effectiveMonthly(s) {
+  if (s.cadence === "monthly")  return s.amount ?? 40;
+  if (s.cadence === "annual")   return s.amount ?? 0;
+  if (s.cadence === "usage-based") return 40; // AWS estimate
+  return 0;
+}
+
+function amountCell(s) {
+  if (s.amount != null) return `<span class="td-amount">$${s.amount.toFixed(2)}</span>`;
+  if (s.cadence === "usage-based") return `<span class="td-amount-guess">~$40<sup style="font-size:0.55rem;vertical-align:super">*</sup></span>`;
+  return `<span style="color:#2d3748;font-style:italic;font-size:0.72rem">?</span>`;
+}
+
+function nextCell(s) {
+  if (!s.next_charge) return `<span class="td-date">—</span>`;
+  const days = daysUntil(s.next_charge);
+  if (days != null && days <= 3) return `<span style="color:#f97316;font-weight:600">${s.next_charge} <small>(${days}d)</small></span>`;
+  if (days != null && days <= 7) return `<span style="color:#fbbf24;font-weight:600">${s.next_charge} <small>(${days}d)</small></span>`;
+  return `<span class="td-date">${s.next_charge}</span>`;
+}
+
+function renderTable(subs) {
+  const rows = subs.map(s => `
+    <tr>
+      <td class="td-vendor">${s.vendor}</td>
+      <td>${amountCell(s)}</td>
+      <td>${cadenceBadge(s.cadence)}</td>
+      <td>${nextCell(s)}</td>
+      <td class="td-notes hide-mobile">${s.notes ?? ""}</td>
+    </tr>`).join("");
+
+  let mo = 0, ann = 0;
+  for (const s of subs) {
+    const amt = s.amount ?? (s.cadence === "usage-based" ? 40 : 0);
+    if (s.cadence === "monthly")      { mo += amt; ann += amt * 12; }
+    else if (s.cadence === "annual")  { mo += amt; ann += amt * 12; }
+    else if (s.cadence === "usage-based") { mo += 40; ann += 480; }
+  }
+
+  const subtotalRow = subs.length > 1 ? `
+    <tr class="subtotal">
+      <td class="sub-label">Subtotal</td>
+      <td class="sub-mo">$${mo.toFixed(2)}/mo</td>
+      <td></td>
+      <td class="sub-ann">$${ann.toFixed(0)}/yr</td>
+      <td class="hide-mobile"></td>
+    </tr>` : "";
+
+  return `<div class="table-wrap"><table>
+    <thead><tr>
+      <th>Vendor</th><th>Amount</th><th>Cadence</th><th>Next Charge</th>
+      <th class="hide-mobile">Notes</th>
+    </tr></thead>
+    <tbody>${rows}${subtotalRow}</tbody>
+  </table></div>`;
+}
+
+const cutMarked = new Set();
+let cutSubs = [];
+
+function toggleCut(id) {
+  if (cutMarked.has(id)) cutMarked.delete(id);
+  else cutMarked.add(id);
+  const chip = document.querySelector(`.cut-chip[data-id="${id}"]`);
+  if (chip) chip.classList.toggle("marked", cutMarked.has(id));
+  updateCutTally();
+}
+
+function resetCuts() {
+  cutMarked.clear();
+  document.querySelectorAll(".cut-chip.marked").forEach(c => c.classList.remove("marked"));
+  updateCutTally();
+}
+
+function updateCutTally() {
+  const active = cutSubs;
+  let totalMo = 0;
+  for (const s of active) totalMo += effectiveMonthly(s);
+
+  let cutMo = 0;
+  for (const s of active) { if (cutMarked.has(s.id)) cutMo += effectiveMonthly(s); }
+
+  const newMo = totalMo - cutMo;
+  const saveYr = cutMo * 12;
+  const keepPct = totalMo > 0 ? (newMo / totalMo) * 100 : 100;
+  const cutPct  = totalMo > 0 ? (cutMo / totalMo) * 100 : 0;
+
+  const saveEl = document.getElementById("cut-live-save");
+  const saveYrEl = document.getElementById("cut-live-yr");
+  if (saveEl) {
+    if (cutMo > 0) {
+      saveEl.textContent = `-$${cutMo.toFixed(2)}/mo`;
+      saveEl.className = "cut-planner-save";
+      saveYrEl.textContent = `-$${saveYr.toFixed(0)}/yr`;
+    } else {
+      saveEl.textContent = "select to cut";
+      saveEl.className = "cut-planner-save zero";
+      saveYrEl.textContent = "";
+    }
+  }
+
+  const keepBar = document.getElementById("cut-bar-keep");
+  const cutBar  = document.getElementById("cut-bar-cut");
+  if (keepBar) keepBar.style.width = keepPct.toFixed(1) + "%";
+  if (cutBar)  cutBar.style.width  = cutPct.toFixed(1) + "%";
+
+  const lblRight = document.getElementById("cut-lbl-right");
+  if (lblRight) lblRight.textContent = `$${totalMo.toFixed(2)}/mo`;
+
+  const resEl = document.getElementById("cut-result");
+  if (resEl) {
+    if (cutMo > 0) {
+      resEl.innerHTML = `
+        <span class="cut-res-before">$${totalMo.toFixed(2)}/mo now</span>
+        <span class="cut-res-arrow">→</span>
+        <span class="cut-res-after">$${newMo.toFixed(2)}/mo after cuts</span>
+        <span class="cut-res-save">save $${cutMo.toFixed(2)}/mo · $${saveYr.toFixed(0)}/yr</span>`;
+    } else {
+      resEl.innerHTML = `<span style="color:#1e293b">Mark subscriptions above to see savings</span>`;
+    }
+  }
+}
+
+function toggleCutPlanner() {
+  const el = document.getElementById("cut-planner");
+  if (!el) return;
+  const isCollapsed = el.classList.toggle("collapsed");
+  el.querySelector(".cut-planner-chev").textContent = isCollapsed ? "▶" : "▼";
+}
+
+function renderCutPlanner(subs) {
+  cutSubs = subs.filter(s => s.status === "active");
+  if (!cutSubs.length) { document.getElementById("savings-wrap").innerHTML = ""; return; }
+
+  const chips = cutSubs.map(s => {
+    const mo = effectiveMonthly(s);
+    const amtLabel = mo > 0 ? `$${mo.toFixed(2)}` : "?";
+    const marked = cutMarked.has(s.id) ? " marked" : "";
+    return `<span class="cut-chip${marked}" data-id="${s.id}" onclick="toggleCut('${s.id}')">
+      <span class="chip-name">${s.vendor}</span>
+      <span class="chip-amt">${amtLabel}</span>
+      <span class="chip-x">✕</span>
+    </span>`;
+  }).join("");
+
+  document.getElementById("savings-wrap").innerHTML = `
+    <div class="cut-planner" id="cut-planner">
+      <div class="cut-planner-hdr" onclick="toggleCutPlanner()">
+        <span class="cut-planner-icon">✂️</span>
+        <div class="cut-planner-titles">
+          <div class="cut-planner-title">Cut Planner</div>
+          <div class="cut-planner-hint">Tap subscriptions to see what you'd save by cutting</div>
+        </div>
+        <div class="cut-planner-live">
+          <span class="cut-planner-save zero" id="cut-live-save">select to cut</span>
+          <span class="cut-planner-save-yr" id="cut-live-yr"></span>
+        </div>
+        <span class="cut-planner-chev">▼</span>
+      </div>
+      <div class="cut-body">
+        <div class="cut-chips">${chips}
+          <span class="cut-chip-reset" onclick="resetCuts()">reset</span>
+        </div>
+        <div class="cut-bar-wrap">
+          <div class="cut-bar-labels">
+            <span id="cut-lbl-left">$0</span>
+            <span id="cut-lbl-right"></span>
+          </div>
+          <div class="cut-bar-track">
+            <div class="cut-bar-keep" id="cut-bar-keep" style="width:100%"></div>
+            <div class="cut-bar-cut"  id="cut-bar-cut"  style="width:0%"></div>
+          </div>
+        </div>
+        <div class="cut-result" id="cut-result">
+          <span style="color:#1e293b">Mark subscriptions above to see savings</span>
+        </div>
+      </div>
+    </div>`;
+  updateCutTally();
+}
+
+function isSectionCollapsed(key) {
+  try { return new Set(JSON.parse(localStorage.getItem("demo-subs-collapsed") ?? "[]")).has(key); }
+  catch { return false; }
+}
+
+function toggleSection(key) {
+  const el = document.querySelector(`.section[data-sec="${CSS.escape(key)}"]`);
+  if (!el) return;
+  let col;
+  try { col = new Set(JSON.parse(localStorage.getItem("demo-subs-collapsed") ?? "[]")); }
+  catch { col = new Set(); }
+  if (col.has(key)) { col.delete(key); el.classList.remove("collapsed"); }
+  else              { col.add(key);    el.classList.add("collapsed"); }
+  localStorage.setItem("demo-subs-collapsed", JSON.stringify([...col]));
+}
+
+function renderSections(subs, search) {
+  const q = search.toLowerCase().trim();
+  const filtered = q ? subs.filter(s => `${s.vendor} ${s.category} ${s.notes ?? ""}`.toLowerCase().includes(q)) : subs;
+  document.getElementById("match-count").textContent = q ? `${filtered.length} match${filtered.length !== 1 ? "es" : ""}` : "";
+
+  let html = "";
+  for (const sec of SECTIONS) {
+    const group = filtered.filter(s => s.category === sec.key && s.status === "active");
+    if (!group.length) continue;
+    let mo = 0;
+    for (const s of group) mo += effectiveMonthly(s);
+    const moStr = `$${mo.toFixed(2)}/mo`;
+    const collapsed = isSectionCollapsed(sec.key) ? " collapsed" : "";
+    html += `<div class="section${collapsed}" data-sec="${sec.key}">
+      <div class="section-header ${sec.cls}" onclick="toggleSection('${sec.key}')">
+        <div class="accent-bar"></div>
+        <span class="sec-icon">${sec.icon}</span>
+        <div>
+          <h2>${sec.key}</h2>
+          <div class="sec-desc">${sec.desc}</div>
+        </div>
+        <div class="sec-total">${moStr}</div>
+        <div class="sec-count">${group.length}</div>
+        <span class="sec-chev">▼</span>
+      </div>
+      <div class="section-body">${renderTable(group)}</div>
+    </div>`;
+  }
+  document.getElementById("sections").innerHTML = html || `<p style="color:#334155;text-align:center;padding:60px 20px;">No subscriptions match your search.</p>`;
+}
+
+function renderStats(subs) {
+  const active = subs.filter(s => s.status === "active");
+  let mo = 0, ann = 0;
+  for (const s of active) {
+    const amt = effectiveMonthly(s);
+    mo += amt;
+    ann += s.cadence === "annual" ? s.amount * 12 : amt * 12;
+  }
+  const upcoming = active.filter(s => { const d = daysUntil(s.next_charge); return d != null && d >= 0 && d <= 7; }).length;
+
+  document.getElementById("stats-bar").innerHTML = `
+    <div class="stat stat-monthly">
+      <div class="stat-value">$${mo.toFixed(2)}</div>
+      <div class="stat-label">Monthly (est.)</div>
+    </div>
+    <div class="stat stat-annual">
+      <div class="stat-value">$${(mo * 12).toFixed(0)}</div>
+      <div class="stat-label">Annual (est.)</div>
+    </div>
+    <div class="stat stat-active">
+      <div class="stat-value">${active.length}</div>
+      <div class="stat-label">Active</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" style="color:#fbbf24">${upcoming}</div>
+      <div class="stat-label">Due this week</div>
+    </div>`;
+
+  const moLabel = `$${mo.toFixed(2)}/mo`;
+  const yrLabel = `$${(mo * 12).toFixed(0)}/yr`;
+  document.getElementById("footer-tally").innerHTML = [
+    `<span class="tally-chip mo">${moLabel}</span>`,
+    `<span class="tally-chip yr">${yrLabel}</span>`,
+    `<span class="tally-chip act">${active.length} active</span>`,
+    upcoming ? `<span class="tally-chip" style="border-color:rgba(251,191,36,0.3);color:#fbbf24;background:rgba(251,191,36,0.06)">${upcoming} due soon</span>` : "",
+  ].join("");
+}
+
+let searchText = "";
+const subs = DATA.subscriptions;
+
+renderStats(subs);
+renderCutPlanner(subs);
+renderSections(subs, "");
+
+document.getElementById("search").addEventListener("input", e => {
+  searchText = e.target.value;
+  renderSections(subs, searchText);
+});
+</script>
+</body>
+</html>

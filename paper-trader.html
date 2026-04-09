@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paper Trader</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0b0e18; color: #cbd5e1;
+    min-height: 100vh; padding: 0 0 90px;
+    display: flex; flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  /* Demo banner */
+  .demo-banner {
+    background: #131929; border-bottom: 1px solid #1a2236;
+    padding: 7px 24px; display: flex; align-items: center; gap: 10px;
+    font-size: 0.72rem; color: #475569;
+  }
+  .demo-banner a { color: #475569; text-decoration: none; }
+  .demo-banner a:hover { color: #94a3b8; }
+  .demo-sep { color: #1e2a45; }
+  .demo-note { margin-left: auto; color: #334155; }
+
+  .page-wrap { padding: 28px 24px; }
+
+  .page-header { margin-bottom: 28px; }
+  .page-header h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; color: #f1f5f9; }
+  .page-header p  { font-size: 0.8rem; color: #475569; margin-top: 4px; }
+  #meta { font-size: 0.75rem; color: #334155; margin-top: 8px; }
+
+  /* Price ticker */
+  .ticker-wrap {
+    position: relative; overflow: hidden; margin-bottom: 20px;
+    background: #131929; border: 1px solid #1a2236; border-radius: 10px;
+    height: 38px; display: flex; align-items: center;
+  }
+  .ticker-wrap::before, .ticker-wrap::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 40px; z-index: 2; pointer-events: none;
+  }
+  .ticker-wrap::before { left: 0;  background: linear-gradient(to right, #131929, transparent); }
+  .ticker-wrap::after  { right: 0; background: linear-gradient(to left,  #131929, transparent); }
+  .ticker-track {
+    display: flex; gap: 0; white-space: nowrap;
+    animation: ticker-scroll 50s linear infinite;
+    will-change: transform;
+  }
+  .ticker-track.paused { animation-play-state: paused; }
+  .ticker-wrap:hover .ticker-track { animation-play-state: paused; }
+  @keyframes ticker-scroll {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+  .price-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0 18px; font-size: 0.84rem; height: 38px;
+    border-right: 1px solid #1a2236;
+  }
+  .price-pill .sym { color: #475569; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.04em; }
+  .ticker-pause {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    z-index: 3; background: #1a2035; border: 1px solid #1e2a45; border-radius: 5px;
+    width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: #475569; font-size: 0.65rem;
+    transition: background 0.12s, color 0.12s;
+  }
+  .ticker-pause:hover { background: #1e2a45; color: #94a3b8; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .card {
+    background: #131929; border-radius: 12px; padding: 18px 20px;
+    border: 1px solid #1a2236;
+    position: relative; cursor: grab;
+    transition: transform 0.12s, box-shadow 0.12s, opacity 0.15s;
+  }
+  .card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); border-color: #1e2a45; }
+  .card-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; margin-bottom: 8px; }
+  .card-value { font-size: 1.75rem; font-weight: 700; display: flex; align-items: baseline; gap: 5px; }
+  .card-arrow { font-size: 1.1rem; line-height: 1; opacity: 0.85; }
+  .card-sub { font-size: 0.78rem; color: #475569; margin-top: 4px; }
+
+  .charts-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .charts-row { grid-template-columns: 1fr; } }
+  .chart-card {
+    background: #131929; border-radius: 12px; padding: 16px 18px; min-width: 0;
+    border: 1px solid #1a2236;
+    transition: transform 0.12s, box-shadow 0.12s;
+  }
+  .chart-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); border-color: #1e2a45; }
+  .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .chart-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; color: #475569; }
+  .chart-wrap { position: relative; width: 100%; height: 230px; }
+  .chart-wrap--wide { height: 160px; }
+  .chart-wrap canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
+
+  .range-pills { display: flex; gap: 3px; }
+  .range-pill {
+    font-size: 0.65rem; padding: 2px 7px; border-radius: 4px;
+    background: #1a2035; color: #475569; cursor: pointer;
+    border: 1px solid #1e2a45; transition: background 0.12s, color 0.12s;
+  }
+  .range-pill:hover { background: #1e2a45; color: #94a3b8; }
+  .range-pill.active { background: #1e3a8a; color: #93c5fd; border-color: #2563eb; }
+
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; margin-bottom: 20px; }
+  .section-title { font-size: 0.88rem; font-weight: 600; margin-bottom: 10px; color: #64748b; }
+  table { width: 100%; border-collapse: collapse; background: #131929; border-radius: 12px; overflow: hidden; border: 1px solid #1a2236; }
+  th {
+    text-align: left; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+    color: #475569; padding: 11px 14px; border-bottom: 1px solid #1e2a45;
+    cursor: pointer; user-select: none; white-space: nowrap;
+  }
+  th:hover { color: #94a3b8; }
+  td { padding: 11px 14px; font-size: 0.86rem; border-bottom: 1px solid #1a2236; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  .empty { color: #475569; font-style: italic; font-size: 0.84rem; padding: 14px; white-space: normal; }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 600; }
+  .badge-buy  { background: #14532d; color: #22c55e; }
+  .badge-sell { background: #450a0a; color: #ef4444; }
+  .badge-stop { background: #431407; color: #f97316; }
+  .badge-tp   { background: #1e1a4a; color: #a78bfa; }
+  .green { color: #22c55e; } .red { color: #ef4444; } .neutral { color: #64748b; }
+
+  .history-section { margin-top: auto; background: #131929; border: 1px solid #1a2236; border-radius: 12px; overflow: hidden; flex-shrink: 0; }
+  .history-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 18px; cursor: pointer; user-select: none;
+    border-bottom: 1px solid transparent; transition: background 0.15s;
+  }
+  .history-header:hover { background: rgba(255,255,255,0.025); }
+  .history-header.open { border-bottom-color: #1e2a45; }
+  .history-left { display: flex; align-items: center; gap: 8px; }
+  .history-title { font-size: 0.88rem; font-weight: 600; color: #64748b; }
+  .history-badge { font-size: 0.7rem; color: #475569; background: #1a2035; border: 1px solid #1e2a45; padding: 2px 8px; border-radius: 10px; }
+  .history-right { display: flex; align-items: center; gap: 6px; color: #475569; font-size: 0.78rem; }
+  .chevron { transition: transform 0.2s ease; display: flex; }
+  .chevron.open { transform: rotate(180deg); }
+  .history-body { max-height: 0; overflow: hidden; transition: max-height 0.28s ease; }
+  .history-body.open { max-height: 340px; overflow-y: auto; overflow-x: auto; }
+  .history-body table { margin-bottom: 0; border-radius: 0; background: transparent; border: none; }
+  .history-body::-webkit-scrollbar { width: 5px; height: 5px; }
+  .history-body::-webkit-scrollbar-track { background: #131929; }
+  .history-body::-webkit-scrollbar-thumb { background: #1e2a45; border-radius: 3px; }
+
+  .tab-bar { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+  .tab {
+    padding: 7px 16px; border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+    background: #1a2035; color: #475569; border: 1px solid #1e2a45; cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+  }
+  .tab:hover { background: #1e2a45; color: #94a3b8; }
+  .tab.active { background: #1e3a8a; color: #93c5fd; border-color: #2563eb; }
+  .tab-compare { margin-left: auto; }
+
+  .compare-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .compare-card {
+    background: #131929; border-radius: 12px; padding: 20px; border: 1px solid #1a2236;
+    cursor: pointer; transition: transform 0.12s, box-shadow 0.12s;
+  }
+  .compare-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.4); border-color: #1e2a45; }
+  .compare-card-name { font-size: 0.95rem; font-weight: 700; color: #f1f5f9; margin-bottom: 2px; }
+  .compare-card-strategy { font-size: 0.7rem; color: #475569; margin-bottom: 14px; }
+  .compare-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid #1a2236; font-size: 0.84rem; }
+  .compare-row:last-child { border-bottom: none; }
+  .compare-label { color: #475569; }
+</style>
+</head>
+<body>
+
+<!-- Demo banner -->
+<div class="demo-banner">
+  <a href="./index.html">← Back</a>
+  <span class="demo-sep">|</span>
+  <span>⚡ Live demo — prices update from CoinGecko · portfolio positions are simulated</span>
+</div>
+
+<div class="page-wrap">
+
+<div class="page-header">
+  <h1>🤖 Paper Trader</h1>
+  <p>Three parallel accounts · Crypto momentum · $1,000 each · $500 stop loss</p>
+  <div id="meta">—</div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab active" data-account="Alpha" onclick="switchTab('Alpha')">Alpha · Aggressive</button>
+  <button class="tab" data-account="Beta" onclick="switchTab('Beta')">Beta · Conservative</button>
+  <button class="tab" data-account="Gamma" onclick="switchTab('Gamma')">Gamma · Balanced</button>
+  <button class="tab tab-compare" data-account="compare" onclick="switchTab('compare')">↔ Compare</button>
+</div>
+
+<div id="compare-panel" style="display:none">
+  <div class="compare-grid" id="compare-grid"></div>
+</div>
+
+<div id="main-view">
+<div class="ticker-wrap" id="ticker-wrap">
+  <div class="ticker-track" id="ticker-track"></div>
+  <div class="ticker-pause" id="ticker-pause" onclick="toggleTicker()" title="Pause/resume">⏸</div>
+</div>
+<div class="stats-grid" id="stats"></div>
+
+<div class="charts-row">
+  <div class="chart-card">
+    <div class="chart-header">
+      <span class="chart-label">Portfolio Value</span>
+      <div class="range-pills" id="range-pills">
+        <span class="range-pill" data-range="7d">7D</span>
+        <span class="range-pill" data-range="30d">30D</span>
+        <span class="range-pill active" data-range="all">ALL</span>
+      </div>
+    </div>
+    <div class="chart-wrap chart-wrap--wide"><canvas id="chartPortfolio"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-header"><span class="chart-label">Allocation</span></div>
+    <div class="chart-wrap"><canvas id="chartAlloc"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-header"><span class="chart-label">24h Change</span></div>
+    <div class="chart-wrap"><canvas id="chartChange"></canvas></div>
+  </div>
+</div>
+
+<div class="section-title">Current Positions</div>
+<div class="table-scroll">
+  <table id="positions-table">
+    <thead>
+      <tr>
+        <th>Asset</th>
+        <th>Shares</th>
+        <th>Avg Cost</th>
+        <th>Current</th>
+        <th>Value</th>
+        <th>P&amp;L</th>
+      </tr>
+    </thead>
+    <tbody id="positions-body"><tr><td colspan="6" class="empty">Loading…</td></tr></tbody>
+  </table>
+</div>
+
+<div class="history-section">
+  <div class="history-header" id="history-header" onclick="toggleHistory()">
+    <div class="history-left">
+      <span class="history-title">Trade History</span>
+      <span class="history-badge" id="trade-count">—</span>
+    </div>
+    <div class="history-right">
+      <span id="toggle-label">Show</span>
+      <span class="chevron" id="chevron">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M3 5l4 4 4-4" stroke="#64748b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
+    </div>
+  </div>
+  <div class="history-body" id="history-body">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Type</th>
+          <th>Asset</th>
+          <th>Shares</th>
+          <th>Price</th>
+          <th>Amount</th>
+          <th>P&amp;L</th>
+        </tr>
+      </thead>
+      <tbody id="trades-body"><tr><td colspan="7" class="empty">Loading…</td></tr></tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- /main-view -->
+</div><!-- /page-wrap -->
+
+<script>
+const fmt    = (n, d=2) => n == null ? '—' : n.toLocaleString('en-US', {minimumFractionDigits:d, maximumFractionDigits:d});
+const fmtUSD = n => n == null ? '—' : '$' + fmt(n);
+const fmtPct = n => n == null ? '—' : (n >= 0 ? '+' : '') + fmt(n) + '%';
+const cls    = n => n == null ? 'neutral' : n > 0 ? 'green' : n < 0 ? 'red' : 'neutral';
+
+// ── Inline baked state data ──────────────────────────────────────────────────
+// Slightly fictionalized from real state snapshots
+const STATES = {
+  Alpha: {
+    account: "Alpha",
+    startingCapital: 1000,
+    stopLossAt: 500,
+    cash: 485.54,
+    positions: {
+      BTC: { shares: 0.003359, avgCost: 72257 },
+      SOL: { shares: 2.8897, avgCost: 84.01 }
+    },
+    trades: [
+      { type:"BUY",  symbol:"BTC",  shares:0.003527, price:70877, spent:250,       at:"2026-03-23T21:07:05Z" },
+      { type:"BUY",  symbol:"ETH",  shares:0.11579,  price:2158.92, spent:250,     at:"2026-03-23T21:07:05Z" },
+      { type:"BUY",  symbol:"XRP",  shares:173.61,   price:1.44, spent:250,        at:"2026-03-23T21:07:05Z" },
+      { type:"SELL", symbol:"BTC",  shares:0.003527, price:70248, proceeds:247.78, pnl:-2.22, at:"2026-03-24T14:07:05Z" },
+      { type:"SELL", symbol:"ETH",  shares:0.11579,  price:2141.23, proceeds:247.95, pnl:-2.05, at:"2026-03-24T14:07:05Z" },
+      { type:"SELL", symbol:"XRP",  shares:173.61,   price:1.40, proceeds:243.06, pnl:-6.94, at:"2026-03-24T14:07:05Z" },
+      { type:"BUY",  symbol:"ADA",  shares:931.41,   price:0.265401, spent:247.20, at:"2026-03-24T22:07:05Z" },
+      { type:"BUY",  symbol:"DOGE", shares:2603.47,  price:0.095075, spent:247.53, at:"2026-03-25T00:07:04Z" },
+      { type:"SELL", symbol:"ADA",  shares:931.41,   price:0.254298, proceeds:236.86, pnl:-10.34, at:"2026-03-26T18:07:06Z" },
+      { type:"SELL", symbol:"DOGE", shares:2603.47,  price:0.090941, proceeds:236.76, pnl:-10.76, at:"2026-03-26T18:07:06Z" },
+      { type:"BUY",  symbol:"BTC",  shares:0.003641, price:66817, spent:243.31,    at:"2026-03-28T14:07:04Z" },
+      { type:"TAKE_PROFIT", symbol:"BTC", shares:0.001796, price:69409, proceeds:124.41, pnl:3.74, at:"2026-04-06T00:07:04Z" },
+      { type:"BUY",  symbol:"SOL",  shares:2.9722,   price:81.07, spent:240.96,    at:"2026-04-04T16:07:05Z" },
+      { type:"SELL", symbol:"SOL",  shares:2.9722,   price:79.74, proceeds:237.01, pnl:-3.95, at:"2026-04-05T07:07:01Z" },
+      { type:"BUY",  symbol:"ETH",  shares:0.11512,  price:2084.99, spent:240.03,  at:"2026-04-05T23:07:04Z" },
+      { type:"TAKE_PROFIT", symbol:"ETH", shares:0.057561, price:2153.67, proceeds:123.97, pnl:3.95, at:"2026-04-06T10:07:05Z" },
+      { type:"SELL", symbol:"ETH",  shares:0.05756,  price:2074.18, proceeds:119.45, pnl:-1.00, at:"2026-04-07T02:07:05Z" },
+      { type:"BUY",  symbol:"BTC",  shares:0.003432, price:70067, spent:240.49,    at:"2026-04-07T22:07:03Z" },
+      { type:"BUY",  symbol:"ADA",  shares:945.82,   price:0.25426, spent:240.49,  at:"2026-04-07T22:07:03Z" },
+      { type:"BUY",  symbol:"SOL",  shares:2.8908,   price:83.19, spent:240.49,    at:"2026-04-07T22:07:03Z" },
+      { type:"TAKE_PROFIT", symbol:"ADA", shares:472.91, price:0.26316, proceeds:124.45, pnl:4.21, at:"2026-04-07T23:07:05Z" },
+      { type:"SELL", symbol:"ADA",  shares:472.91,   price:0.251128, proceeds:118.73, pnl:-0.09, at:"2026-04-08T23:07:04Z" },
+      { type:"SELL", symbol:"SOL",  shares:2.8908,   price:82.41, proceeds:238.23, pnl:-2.25, at:"2026-04-08T23:07:04Z" },
+      { type:"SELL", symbol:"BTC",  shares:0.003432, price:71057, proceeds:243.88, pnl:3.40, at:"2026-04-09T00:07:05Z" },
+      { type:"BUY",  symbol:"BTC",  shares:0.003359, price:72257, spent:242.77,    at:"2026-04-09T16:07:06Z" },
+      { type:"BUY",  symbol:"SOL",  shares:2.8897,   price:84.01, spent:242.77,    at:"2026-04-09T16:07:06Z" },
+    ],
+    createdAt: "2026-03-23T00:00:00Z",
+    peakValue: 1006.04
+  },
+  Beta: {
+    account: "Beta",
+    startingCapital: 1000,
+    stopLossAt: 500,
+    cash: 937.03,
+    positions: {},
+    trades: [
+      { type:"BUY",  symbol:"BTC",  shares:0.004232, price:70877, spent:300,       at:"2026-03-23T21:07:05Z" },
+      { type:"BUY",  symbol:"ETH",  shares:0.13895,  price:2158.92, spent:300,     at:"2026-03-23T21:07:05Z" },
+      { type:"SELL", symbol:"BTC",  shares:0.004232, price:70248, proceeds:297.34, pnl:-2.66, at:"2026-03-24T14:07:05Z" },
+      { type:"SELL", symbol:"ETH",  shares:0.13895,  price:2141.23, proceeds:297.54, pnl:-2.46, at:"2026-03-24T14:07:05Z" },
+      { type:"BUY",  symbol:"ADA",  shares:1124.58,  price:0.265401, spent:298.46, at:"2026-03-24T22:07:05Z" },
+      { type:"BUY",  symbol:"DOGE", shares:3148.39,  price:0.095016, spent:299.15, at:"2026-03-25T01:07:06Z" },
+      { type:"SELL", symbol:"ADA",  shares:1124.58,  price:0.254298, proceeds:285.98, pnl:-12.49, at:"2026-03-26T18:07:06Z" },
+      { type:"SELL", symbol:"DOGE", shares:3148.39,  price:0.090941, proceeds:286.32, pnl:-12.83, at:"2026-03-26T18:07:06Z" },
+      { type:"BUY",  symbol:"DOGE", shares:3190.05,  price:0.09118, spent:290.87,   at:"2026-03-28T11:07:05Z" },
+      { type:"BUY",  symbol:"ETH",  shares:0.14454,  price:2021.89, spent:292.26,   at:"2026-03-28T14:07:04Z" },
+      { type:"SELL", symbol:"ETH",  shares:0.14454,  price:1985.32, proceeds:286.97, pnl:-5.29, at:"2026-03-29T14:07:05Z" },
+      { type:"SELL", symbol:"DOGE", shares:3190.05,  price:0.090206, proceeds:287.76, pnl:-3.11, at:"2026-03-29T14:07:05Z" },
+      { type:"BUY",  symbol:"ADA",  shares:1169.92,  price:0.242926, spent:284.20, at:"2026-04-03T05:07:04Z" },
+      { type:"BUY",  symbol:"DOGE", shares:3119.58,  price:0.091253, spent:284.67, at:"2026-04-03T06:07:02Z" },
+      { type:"SELL", symbol:"ADA",  shares:1169.92,  price:0.245294, proceeds:286.97, pnl:2.77, at:"2026-04-04T15:07:05Z" },
+      { type:"SELL", symbol:"DOGE", shares:3119.58,  price:0.090082, proceeds:281.02, pnl:-3.65, at:"2026-04-05T08:07:05Z" },
+      { type:"BUY",  symbol:"ADA",  shares:1112.84,  price:0.25426, spent:282.95,   at:"2026-04-07T22:07:03Z" },
+      { type:"BUY",  symbol:"SOL",  shares:3.40126,  price:83.19, spent:282.95,     at:"2026-04-07T22:07:03Z" },
+      { type:"SELL", symbol:"ADA",  shares:1112.84,  price:0.251128, proceeds:279.47, pnl:-3.49, at:"2026-04-08T23:07:04Z" },
+      { type:"SELL", symbol:"SOL",  shares:3.40126,  price:82.41, proceeds:280.30, pnl:-2.65, at:"2026-04-08T23:07:04Z" },
+    ],
+    createdAt: "2026-03-23T00:00:00Z",
+    peakValue: 1013.60
+  },
+  Gamma: {
+    account: "Gamma",
+    startingCapital: 1000,
+    stopLossAt: 500,
+    cash: 684.64,
+    positions: {
+      BTC: { shares: 0.003158, avgCost: 72257 }
+    },
+    trades: [
+      { type:"BUY",  symbol:"BTC",  shares:0.003527, price:70877, spent:250,       at:"2026-03-23T21:07:05Z" },
+      { type:"BUY",  symbol:"ETH",  shares:0.11579,  price:2158.92, spent:250,     at:"2026-03-23T21:07:05Z" },
+      { type:"BUY",  symbol:"XRP",  shares:173.61,   price:1.44, spent:250,        at:"2026-03-23T21:07:05Z" },
+      { type:"SELL", symbol:"BTC",  shares:0.003527, price:70248, proceeds:247.78, pnl:-2.22, at:"2026-03-24T14:07:05Z" },
+      { type:"SELL", symbol:"ETH",  shares:0.11579,  price:2141.23, proceeds:247.95, pnl:-2.05, at:"2026-03-24T14:07:05Z" },
+      { type:"SELL", symbol:"XRP",  shares:173.61,   price:1.40, proceeds:243.06, pnl:-6.94, at:"2026-03-24T14:07:05Z" },
+      { type:"BUY",  symbol:"ADA",  shares:931.41,   price:0.265401, spent:247.20, at:"2026-03-24T22:07:05Z" },
+      { type:"BUY",  symbol:"DOGE", shares:2606.60,  price:0.095016, spent:247.67, at:"2026-03-25T01:07:06Z" },
+      { type:"BUY",  symbol:"SOL",  shares:2.715321, price:91.04, spent:247.20,    at:"2026-03-25T03:07:06Z" },
+      { type:"SELL", symbol:"ADA",  shares:931.41,   price:0.254298, proceeds:236.86, pnl:-10.34, at:"2026-03-26T18:07:06Z" },
+      { type:"SELL", symbol:"SOL",  shares:2.715321, price:86.61, proceeds:235.17, pnl:-12.03, at:"2026-03-26T18:07:06Z" },
+      { type:"SELL", symbol:"DOGE", shares:2606.60,  price:0.090941, proceeds:237.05, pnl:-10.62, at:"2026-03-26T18:07:06Z" },
+      { type:"BUY",  symbol:"BTC",  shares:0.003372, price:68371, spent:230.60,    at:"2026-04-05T23:07:04Z" },
+      { type:"SELL", symbol:"BTC",  shares:0.003372, price:69050, proceeds:232.89, pnl:2.29, at:"2026-04-07T10:07:00Z" },
+      { type:"BUY",  symbol:"ADA",  shares:903.96,   price:0.25426, spent:229.84,  at:"2026-04-07T22:07:03Z" },
+      { type:"BUY",  symbol:"SOL",  shares:2.76285,  price:83.19, spent:229.84,    at:"2026-04-07T22:07:03Z" },
+      { type:"BUY",  symbol:"DOGE", shares:2469.29,  price:0.09308, spent:229.84,  at:"2026-04-07T22:07:03Z" },
+      { type:"SELL", symbol:"ADA",  shares:903.96,   price:0.251128, proceeds:227.01, pnl:-2.83, at:"2026-04-08T23:07:04Z" },
+      { type:"SELL", symbol:"SOL",  shares:2.76285,  price:82.41, proceeds:227.69, pnl:-2.16, at:"2026-04-08T23:07:04Z" },
+      { type:"SELL", symbol:"DOGE", shares:2469.29,  price:0.092462, proceeds:228.32, pnl:-1.53, at:"2026-04-08T23:07:04Z" },
+      { type:"BUY",  symbol:"BTC",  shares:0.003158, price:72257, spent:228.21,    at:"2026-04-09T16:07:06Z" },
+    ],
+    createdAt: "2026-03-23T00:00:00Z",
+    peakValue: 1009.80
+  }
+};
+
+const ACCT_INFO = {
+  Alpha: { buy: '+0.75%', sell: '−0.75%', maxPos: 3, tp: '3%' },
+  Beta:  { buy: '+1.25%', sell: '−1.25%', maxPos: 2, tp: '5%' },
+  Gamma: { buy: '+1.0%',  sell: '−1.0%',  maxPos: 3, tp: '4%' },
+};
+
+let _activeAccount = 'Alpha';
+let _state = null, _prices = null;
+let _portfolioRange = 'all';
+let _histOpen = false;
+let _tickerPaused = false;
+let chartPortfolio, chartAlloc, chartChange;
+
+// ── CoinGecko live prices ───────────────────────────────────────────────────
+async function fetchCryptoPrices() {
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ripple,cardano,solana,dogecoin&vs_currencies=usd&include_24hr_change=true');
+    if (!r.ok) return null;
+    const d = await r.json();
+    return {
+      BTC:  { price: d.bitcoin?.usd,   change: d.bitcoin?.usd_24h_change   },
+      ETH:  { price: d.ethereum?.usd,  change: d.ethereum?.usd_24h_change  },
+      XRP:  { price: d.ripple?.usd,    change: d.ripple?.usd_24h_change    },
+      ADA:  { price: d.cardano?.usd,   change: d.cardano?.usd_24h_change   },
+      SOL:  { price: d.solana?.usd,    change: d.solana?.usd_24h_change    },
+      DOGE: { price: d.dogecoin?.usd,  change: d.dogecoin?.usd_24h_change  },
+    };
+  } catch { return null; }
+}
+
+function toggleTicker() {
+  _tickerPaused = !_tickerPaused;
+  document.getElementById('ticker-track').classList.toggle('paused', _tickerPaused);
+  document.getElementById('ticker-pause').textContent = _tickerPaused ? '▶' : '⏸';
+}
+
+function renderPrices(prices) {
+  if (!prices) return;
+  const pills = Object.entries(prices).map(([sym, {price, change}]) =>
+    `<div class="price-pill"><span class="sym">${sym}</span>${fmtUSD(price)}&nbsp;<span class="${cls(change)}">${fmtPct(change)}</span></div>`
+  ).join('');
+  document.getElementById('ticker-track').innerHTML = pills + pills;
+}
+
+function portfolioTotal(state, prices) {
+  let v = state.cash;
+  for (const [sym, pos] of Object.entries(state.positions || {}))
+    v += pos.shares * (prices?.[sym]?.price ?? pos.avgCost);
+  return v;
+}
+
+function renderStats(state, prices) {
+  const total = portfolioTotal(state, prices);
+  const pnl   = total - state.startingCapital;
+  const pct   = (pnl / state.startingCapital) * 100;
+  const posValue = total - state.cash;
+  const posCost  = Object.values(state.positions || {}).reduce((s, p) => s + p.shares * p.avgCost, 0);
+  const tradeCount = state.trades.length;
+
+  const defs = [
+    { label:'Portfolio Value', value: fmtUSD(total), sub: `${fmtUSD(pnl)} (${fmtPct(pct)}) vs $${state.startingCapital} start`, c: cls(pnl), trend: pnl>0?'↑':pnl<0?'↓':'' },
+    { label:'Cash', value: fmtUSD(state.cash), sub: `${fmt((state.cash/total)*100)}% of portfolio`, c:'', trend:'' },
+    { label:'Positions Value', value: fmtUSD(posValue), sub: `${Object.keys(state.positions||{}).length} open position(s)`, c: posCost>0?cls(posValue-posCost):'', trend: posCost>0?(posValue-posCost>0?'↑':'↓'):'' },
+    { label:'Stop Loss', value: fmtUSD(state.stopLossAt), sub: `${fmtUSD(total - state.stopLossAt)} cushion`, c: total<=state.stopLossAt*1.1?'red':'neutral', trend:'' },
+    { label:'Total Trades', value: String(tradeCount), sub: `since ${new Date(state.createdAt).toLocaleDateString()}`, c:'', trend:'' },
+  ];
+
+  document.getElementById('stats').innerHTML = defs.map(d => `
+    <div class="card">
+      <div class="card-label">${d.label}</div>
+      <div class="card-value ${d.c}">${d.value}${d.trend?`<span class="card-arrow">${d.trend}</span>`:''}</div>
+      <div class="card-sub">${d.sub}</div>
+    </div>`).join('');
+}
+
+function buildPortfolioHistory(state, prices, range) {
+  const trades = [...state.trades].sort((a,b) => new Date(a.at)-new Date(b.at));
+  const cutoff = range === 'all' ? null : (() => {
+    const d = new Date();
+    if (range === '7d') d.setDate(d.getDate()-7);
+    else if (range === '30d') d.setDate(d.getDate()-30);
+    return d;
+  })();
+
+  const pts = [{ at: state.createdAt, v: state.startingCapital }];
+  let cash = state.startingCapital;
+  const sim = {};
+
+  for (const t of trades) {
+    const amount = t.spent ?? t.proceeds ?? 0;
+    if (t.type === 'BUY')  { cash -= amount; sim[t.symbol] = { shares: t.shares, price: t.price }; }
+    else { cash += amount; delete sim[t.symbol]; }
+    let v = cash;
+    for (const [sym, p] of Object.entries(sim)) v += p.shares * (prices?.[sym]?.price ?? p.price);
+    pts.push({ at: t.at, v });
+  }
+
+  let cur = state.cash;
+  for (const [sym, pos] of Object.entries(state.positions || {}))
+    cur += pos.shares * (prices?.[sym]?.price ?? pos.avgCost);
+  pts.push({ at: new Date().toISOString(), v: cur });
+
+  const filtered = cutoff ? pts.filter(p => new Date(p.at) >= cutoff) : pts;
+  return {
+    labels: filtered.map(p => new Date(p.at).toLocaleString('en-US', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})),
+    data: filtered.map(p => p.v),
+  };
+}
+
+Chart.defaults.color       = '#64748b';
+Chart.defaults.borderColor = '#2d3748';
+
+function renderCharts(state, prices) {
+  if (chartPortfolio) { chartPortfolio.destroy(); chartPortfolio = null; }
+  if (chartAlloc)     { chartAlloc.destroy();     chartAlloc = null; }
+  if (chartChange)    { chartChange.destroy();     chartChange = null; }
+
+  const { labels, data } = buildPortfolioHistory(state, prices, _portfolioRange);
+  const startingCapital = state.startingCapital;
+
+  chartPortfolio = new Chart(document.getElementById('chartPortfolio'), {
+    type: 'line',
+    data: { labels, datasets: [{
+      data,
+      borderColor: '#64748b',
+      segment: { borderColor: ctx => ctx.p1.parsed.y >= ctx.p0.parsed.y ? '#22c55e' : '#ef4444' },
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      pointRadius: data.length > 30 ? 0 : 3,
+      fill: 'origin',
+      tension: 0.35
+    }]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => '$' + c.parsed.y.toFixed(2) } } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 5, font: { size: 9 } }, grid: { color: '#1a1f2e' } },
+        y: { ticks: { callback: v => '$' + v.toFixed(0), font: { size: 9 } }, grid: { color: '#1a1f2e' } },
+      }
+    }
+  });
+
+  const posEntries = Object.entries(state.positions || {});
+  const posVals    = posEntries.map(([sym, pos]) => pos.shares * (prices?.[sym]?.price ?? pos.avgCost));
+  chartAlloc = new Chart(document.getElementById('chartAlloc'), {
+    type: 'doughnut',
+    data: { labels: ['Cash', ...posEntries.map(([s]) => s)],
+      datasets: [{ data: [state.cash, ...posVals],
+        backgroundColor: ['#3b82f6','#f59e0b','#8b5cf6','#10b981'], borderWidth: 0 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '60%',
+      plugins: { legend: { position: 'right', labels: { font: { size: 9 }, boxWidth: 8, padding: 5 } } } }
+  });
+
+  if (prices) {
+    const pairs = Object.entries(prices).map(([sym, {change}]) => ({ sym, val: change }));
+    chartChange = new Chart(document.getElementById('chartChange'), {
+      type: 'bar',
+      data: { labels: pairs.map(p=>p.sym), datasets: [{
+        data: pairs.map(p=>p.val),
+        backgroundColor: pairs.map(p=>p.val>=0?'rgba(34,197,94,0.75)':'rgba(239,68,68,0.75)'),
+        borderRadius: 5
+      }]},
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => (c.parsed.y>=0?'+':'') + c.parsed.y.toFixed(2) + '%' } } },
+        scales: {
+          x: { ticks: { font: { size: 9 } }, grid: { display: false } },
+          y: { ticks: { callback: v => v+'%', font: { size: 9 } }, grid: { color: '#1a1f2e' } }
+        }
+      }
+    });
+  }
+}
+
+function renderPositions(state, prices) {
+  const tbody = document.getElementById('positions-body');
+  const entries = Object.entries(state.positions || {});
+  if (!entries.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">No open positions — holding cash</td></tr>';
+    return;
+  }
+  tbody.innerHTML = entries.map(([sym, pos]) => {
+    const cur = prices?.[sym]?.price ?? null;
+    const value = cur ? pos.shares * cur : null;
+    const pnl = cur ? (cur - pos.avgCost) * pos.shares : null;
+    const pnlPct = cur ? ((cur - pos.avgCost) / pos.avgCost) * 100 : null;
+    return `<tr>
+      <td><strong>${sym}</strong></td>
+      <td>${fmt(pos.shares, 6)}</td>
+      <td>${fmtUSD(pos.avgCost)}</td>
+      <td>${fmtUSD(cur)}</td>
+      <td>${fmtUSD(value)}</td>
+      <td class="${cls(pnl)}">${fmtUSD(pnl)} <span style="color:#475569">(${fmtPct(pnlPct)})</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderTrades(state) {
+  const all = [...state.trades].reverse();
+  document.getElementById('trade-count').textContent = all.length + ' trades';
+  document.getElementById('trades-body').innerHTML = all.map(t => {
+    const badgeCls = t.type==='BUY' ? 'badge-buy' : t.type?.includes('STOP') ? 'badge-stop' : t.type?.includes('PROFIT') ? 'badge-tp' : 'badge-sell';
+    const label = t.type==='STOP_LOSS_SELL' ? 'STOP' : t.type==='TAKE_PROFIT' ? 'TP' : t.type;
+    const amount = t.spent ?? t.proceeds ?? null;
+    return `<tr>
+      <td style="color:#64748b;font-size:0.77rem">${new Date(t.at).toLocaleString()}</td>
+      <td><span class="badge ${badgeCls}">${label}</span></td>
+      <td><strong>${t.symbol}</strong></td>
+      <td>${fmt(t.shares, 6)}</td>
+      <td>${fmtUSD(t.price)}</td>
+      <td>${fmtUSD(amount)}</td>
+      <td class="${cls(t.pnl)}">${t.pnl != null ? fmtUSD(t.pnl) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleHistory() {
+  _histOpen = !_histOpen;
+  document.getElementById('history-body').classList.toggle('open', _histOpen);
+  document.getElementById('history-header').classList.toggle('open', _histOpen);
+  document.getElementById('chevron').classList.toggle('open', _histOpen);
+  document.getElementById('toggle-label').textContent = _histOpen ? 'Hide' : 'Show';
+}
+
+document.getElementById('range-pills').addEventListener('click', e => {
+  const pill = e.target.closest('.range-pill');
+  if (!pill) return;
+  _portfolioRange = pill.dataset.range;
+  document.querySelectorAll('#range-pills .range-pill').forEach(p => p.classList.toggle('active', p===pill));
+  if (_state) renderCharts(_state, _prices);
+});
+
+function switchTab(account) {
+  _activeAccount = account;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.account === account));
+  const isCompare = account === 'compare';
+  document.getElementById('compare-panel').style.display = isCompare ? 'block' : 'none';
+  document.getElementById('main-view').style.display     = isCompare ? 'none' : '';
+  refresh();
+}
+
+function renderCompare(prices) {
+  document.getElementById('compare-grid').innerHTML = Object.entries(STATES).map(([id, state]) => {
+    const total   = portfolioTotal(state, prices);
+    const pnl     = total - state.startingCapital;
+    const pnlPct  = (pnl / state.startingCapital) * 100;
+    const info    = ACCT_INFO[id];
+    return `<div class="compare-card" onclick="switchTab('${id}')">
+      <div class="compare-card-name">${id}</div>
+      <div class="compare-card-strategy">${info.buy} / ${info.sell} · max ${info.maxPos} pos · TP ${info.tp}</div>
+      <div class="compare-row"><span class="compare-label">Portfolio</span><span>${fmtUSD(total)}</span></div>
+      <div class="compare-row"><span class="compare-label">P&L</span><span class="${cls(pnl)}">${fmtUSD(pnl)} (${fmtPct(pnlPct)})</span></div>
+      <div class="compare-row"><span class="compare-label">Cash</span><span>${fmtUSD(state.cash)}</span></div>
+      <div class="compare-row"><span class="compare-label">Open positions</span><span>${Object.keys(state.positions||{}).length}</span></div>
+      <div class="compare-row"><span class="compare-label">Total trades</span><span>${state.trades.length}</span></div>
+    </div>`;
+  }).join('');
+}
+
+async function refresh() {
+  const prices = await fetchCryptoPrices();
+  _prices = prices;
+
+  if (_activeAccount === 'compare') {
+    renderCompare(prices);
+    document.getElementById('meta').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    return;
+  }
+
+  _state = STATES[_activeAccount];
+  renderPrices(prices);
+  renderStats(_state, prices);
+  renderPositions(_state, prices);
+  renderTrades(_state);
+  renderCharts(_state, prices);
+  document.getElementById('meta').textContent = 'Updated ' + new Date().toLocaleTimeString();
+}
+
+refresh();
+setInterval(refresh, 60_000);
+</script>
+</body>
+</html>
