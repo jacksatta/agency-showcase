@@ -248,18 +248,18 @@ TODAY.setHours(0,0,0,0);
 const DATA = {
   lastChecked: "2026-04-07T00:00:00.000Z",
   subscriptions: [
-    { id:"s01",  vendor:"Adobe CC",   category:"Design",       amount:54.99, currency:"USD", cadence:"monthly", next_charge:"2026-05-01", status:"active", notes:"All Apps plan" },
-    { id:"s02",  vendor:"AWS",        category:"Cloud",        amount:null,  currency:"USD", cadence:"usage-based", next_charge:null, status:"active", notes:"~$40/mo · S3, Lambda, CloudFront usage" },
-    { id:"s03",  vendor:"Figma",      category:"Design",       amount:45.00, currency:"USD", cadence:"monthly", next_charge:"2026-05-08", status:"active", notes:"Professional plan" },
-    { id:"s04",  vendor:"GitHub",     category:"Dev Tools",    amount:4.00,  currency:"USD", cadence:"monthly", next_charge:"2026-05-12", status:"active", notes:"Pro plan" },
-    { id:"s05",  vendor:"Linear",     category:"Productivity", amount:8.00,  currency:"USD", cadence:"monthly", next_charge:"2026-05-15", status:"active", notes:"Member plan" },
-    { id:"s06",  vendor:"Loom",       category:"Productivity", amount:12.50, currency:"USD", cadence:"annual",  next_charge:"2027-01-10", status:"active", notes:"Business annual — $150/yr" },
-    { id:"s07",  vendor:"Notion",     category:"Productivity", amount:16.00, currency:"USD", cadence:"monthly", next_charge:"2026-05-03", status:"active", notes:"Plus plan" },
-    { id:"s08",  vendor:"1Password",  category:"Security",     amount:3.00,  currency:"USD", cadence:"monthly", next_charge:"2026-05-20", status:"active", notes:"Individual plan" },
-    { id:"s09",  vendor:"Slack",      category:"Comms",        amount:7.25,  currency:"USD", cadence:"annual",  next_charge:"2027-02-01", status:"active", notes:"Pro annual — $87/yr" },
-    { id:"s10",  vendor:"Spotify",    category:"Streaming",    amount:11.99, currency:"USD", cadence:"monthly", next_charge:"2026-05-05", status:"active", notes:"Premium Individual" },
-    { id:"s11",  vendor:"Vercel",     category:"Dev Tools",    amount:20.00, currency:"USD", cadence:"monthly", next_charge:"2026-05-01", status:"active", notes:"Pro plan" },
-    { id:"s12",  vendor:"Zoom",       category:"Comms",        amount:13.33, currency:"USD", cadence:"annual",  next_charge:"2027-03-15", status:"active", notes:"Pro annual — $160/yr" },
+    { id:"s01",  vendor:"Adobe CC",   category:"Design",       amount:null, currency:"USD", cadence:"monthly",    next_charge:"2026-05-01", status:"active", notes:"All Apps plan" },
+    { id:"s02",  vendor:"AWS",        category:"Cloud",        amount:null, currency:"USD", cadence:"usage-based", next_charge:null,         status:"active", notes:"S3, Lambda, CloudFront usage" },
+    { id:"s03",  vendor:"Figma",      category:"Design",       amount:null, currency:"USD", cadence:"monthly",    next_charge:"2026-05-08", status:"active", notes:"Professional plan" },
+    { id:"s04",  vendor:"GitHub",     category:"Dev Tools",    amount:null, currency:"USD", cadence:"monthly",    next_charge:"2026-05-12", status:"active", notes:"Pro plan" },
+    { id:"s05",  vendor:"Linear",     category:"Productivity", amount:null, currency:"USD", cadence:"monthly",    next_charge:"2026-05-15", status:"active", notes:"Member plan" },
+    { id:"s06",  vendor:"Loom",       category:"Productivity", amount:null, currency:"USD", cadence:"annual",     next_charge:"2027-01-10", status:"active", notes:"Business annual" },
+    { id:"s07",  vendor:"Notion",     category:"Productivity", amount:null, currency:"USD", cadence:"monthly",    next_charge:"2026-05-03", status:"active", notes:"Plus plan" },
+    { id:"s08",  vendor:"1Password",  category:"Security",     amount:null, currency:"USD", cadence:"monthly",    next_charge:"2026-05-20", status:"active", notes:"Individual plan" },
+    { id:"s09",  vendor:"Slack",      category:"Comms",        amount:null, currency:"USD", cadence:"annual",     next_charge:"2027-02-01", status:"active", notes:"Pro annual" },
+    { id:"s10",  vendor:"Spotify",    category:"Streaming",    amount:null, currency:"USD", cadence:"monthly",    next_charge:"2026-05-05", status:"active", notes:"Premium Individual" },
+    { id:"s11",  vendor:"Vercel",     category:"Dev Tools",    amount:null, currency:"USD", cadence:"monthly",    next_charge:"2026-05-01", status:"active", notes:"Pro plan" },
+    { id:"s12",  vendor:"Zoom",       category:"Comms",        amount:null, currency:"USD", cadence:"annual",     next_charge:"2027-03-15", status:"active", notes:"Pro annual" },
   ],
   summary: {
     active_count: 12
@@ -297,9 +297,7 @@ function effectiveMonthly(s) {
 }
 
 function amountCell(s) {
-  if (s.amount != null) return `<span class="td-amount">$${s.amount.toFixed(2)}</span>`;
-  if (s.cadence === "usage-based") return `<span class="td-amount-guess">~$40<sup style="font-size:0.55rem;vertical-align:super">*</sup></span>`;
-  return `<span style="color:#2d3748;font-style:italic;font-size:0.72rem">?</span>`;
+  return `<span style="color:#334155;font-size:0.8rem">—</span>`;
 }
 
 function nextCell(s) {
@@ -328,14 +326,7 @@ function renderTable(subs) {
     else if (s.cadence === "usage-based") { mo += 40; ann += 480; }
   }
 
-  const subtotalRow = subs.length > 1 ? `
-    <tr class="subtotal">
-      <td class="sub-label">Subtotal</td>
-      <td class="sub-mo">$${mo.toFixed(2)}/mo</td>
-      <td></td>
-      <td class="sub-ann">$${ann.toFixed(0)}/yr</td>
-      <td class="hide-mobile"></td>
-    </tr>` : "";
+  const subtotalRow = "";
 
   return `<div class="table-wrap"><table>
     <thead><tr>
@@ -529,12 +520,12 @@ function renderStats(subs) {
 
   document.getElementById("stats-bar").innerHTML = `
     <div class="stat stat-monthly">
-      <div class="stat-value">$${mo.toFixed(2)}</div>
-      <div class="stat-label">Monthly (est.)</div>
+      <div class="stat-value">—</div>
+      <div class="stat-label">Monthly</div>
     </div>
     <div class="stat stat-annual">
-      <div class="stat-value">$${(mo * 12).toFixed(0)}</div>
-      <div class="stat-label">Annual (est.)</div>
+      <div class="stat-value">—</div>
+      <div class="stat-label">Annual</div>
     </div>
     <div class="stat stat-active">
       <div class="stat-value">${active.length}</div>
@@ -545,11 +536,7 @@ function renderStats(subs) {
       <div class="stat-label">Due this week</div>
     </div>`;
 
-  const moLabel = `$${mo.toFixed(2)}/mo`;
-  const yrLabel = `$${(mo * 12).toFixed(0)}/yr`;
   document.getElementById("footer-tally").innerHTML = [
-    `<span class="tally-chip mo">${moLabel}</span>`,
-    `<span class="tally-chip yr">${yrLabel}</span>`,
     `<span class="tally-chip act">${active.length} active</span>`,
     upcoming ? `<span class="tally-chip" style="border-color:rgba(251,191,36,0.3);color:#fbbf24;background:rgba(251,191,36,0.06)">${upcoming} due soon</span>` : "",
   ].join("");
