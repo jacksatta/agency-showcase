@@ -36,4 +36,17 @@ Use **Cmd+Shift+.** in Finder to reveal hidden folders if needed.
 
 | File | Purpose |
 |------|---------|
-| `index.html` | The entire page — self-contained, no build step |
+| `index.html` | Main page — links to all demo pages |
+| `paper-trader.html` | Demo: portfolios Alpha/Beta/Gamma, live CoinGecko prices, baked state data |
+| `flight-watcher.html` | Demo: PDX→Europe deals, baked April 2026 snapshot |
+| `subscriptions.html` | Demo: generic indie dev SaaS stack (Figma, Vercel, etc.) — no real personal data |
+| `real-estate.html` | Demo: generic property cards, no real addresses or prices |
+
+## Deploy
+
+Auto-deploys on `git push` — Netlify is connected to `github.com/jacksatta/agency-showcase`.
+
+```bash
+cd /Users/jack/.openclaw/workspace/agency-showcase
+git add -A && git commit -m "update" && git push
+```
