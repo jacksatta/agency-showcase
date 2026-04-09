@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jack · Deliberate UX</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 17px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0b0e18; color: #cbd5e1;
+  min-height: 100vh; overflow-x: hidden;
+}
+
+.bg-wave {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 20%, rgba(30,58,138,0.2) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 80% 70%, rgba(109,40,217,0.10) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 60% 10%, rgba(20,40,80,0.12) 0%, transparent 70%),
+    #0b0e18;
+  background-size: 200% 200%, 180% 180%, 160% 160%, 100%;
+  animation: bgwave 20s ease-in-out infinite alternate;
+}
+@keyframes bgwave {
+  0%   { background-position: 0% 0%, 100% 100%, 50% 0%, 0 0; }
+  50%  { background-position: 60% 30%, 40% 60%, 30% 50%, 0 0; }
+  100% { background-position: 30% 80%, 80% 20%, 10% 90%, 0 0; }
+}
+
+.page { position: relative; z-index: 1; max-width: 680px; margin: 0 auto; padding: 48px 24px 80px; }
+
+/* ── Header ── */
+.header { margin-bottom: 56px; }
+.eyebrow { font-size: 0.68rem; color: #1e3a5f; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 14px; }
+h1 { font-size: clamp(2rem, 5vw, 2.8rem); font-weight: 900; color: #f1f5f9; letter-spacing: -0.04em; line-height: 1.1; margin-bottom: 16px; }
+.intro {
+  font-size: 0.95rem; color: #64748b; line-height: 1.7; max-width: 520px;
+}
+.intro a { color: #94a3b8; text-decoration: none; border-bottom: 1px solid #1e3a5f; }
+.intro a:hover { color: #cbd5e1; border-color: #475569; }
+
+/* ── Live bar ── */
+
+/* ── Section ── */
+.section { margin-bottom: 52px; }
+.section-label {
+  font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #1e3a5f; border-bottom: 1px solid #111827; padding-bottom: 10px; margin-bottom: 24px;
+}
+h2 { font-size: 1.4rem; font-weight: 800; color: #f1f5f9; letter-spacing: -0.03em; margin-bottom: 10px; }
+.body-text { font-size: 0.88rem; color: #64748b; line-height: 1.7; }
+.body-text + .body-text { margin-top: 10px; }
+.body-text strong { color: #94a3b8; font-weight: 600; }
+
+/* ── Build list ── */
+.uptime-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  background: #0d1117; border: 1px solid #1a2236; border-radius: 12px;
+  padding: 14px 18px; gap: 12px;
+}
+.uptime-left { display: flex; align-items: center; gap: 8px; }
+.uptime-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #22c55e; flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(34,197,94,0.6);
+  animation: blink 2.4s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+.uptime-label { font-size: 0.78rem; font-weight: 600; color: #94a3b8; }
+.uptime-right { display: flex; align-items: baseline; gap: 8px; }
+.uptime-pct { font-size: 1.1rem; font-weight: 800; color: #22c55e; }
+.uptime-since { font-size: 0.65rem; color: #334155; }
+.builds { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+.build {
+  display: flex; gap: 14px; align-items: flex-start;
+  background: #0d1117; border: 1px solid #1a2236; border-radius: 12px;
+  padding: 16px 18px; text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.build:hover { background: #111827; border-color: #253047; }
+.build-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 1px; }
+.build-body {}
+.build-name { font-size: 0.9rem; font-weight: 700; color: #e2e8f0; margin-bottom: 3px; }
+.build-desc { font-size: 0.75rem; color: #475569; line-height: 1.5; }
+.build-tag  { font-size: 0.6rem; color: #1e3a5f; margin-top: 4px; }
+
+/* ── Skills grid ── */
+.skills { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 20px; }
+.skill {
+  background: #0d1117; border: 1px solid #1a2236; border-radius: 10px;
+  padding: 14px 16px;
+}
+.skill-name { font-size: 0.82rem; font-weight: 600; color: #94a3b8; margin-bottom: 4px; }
+.skill-desc { font-size: 0.72rem; color: #334155; line-height: 1.4; }
+
+/* ── Portfolio card ── */
+.portfolio-card {
+  background: #0d1117; border: 1px solid #1a2236; border-radius: 14px;
+  padding: 22px; margin-top: 20px;
+}
+.portfolio-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.85rem; font-weight: 700; color: #93c5fd;
+  text-decoration: none; margin-bottom: 14px;
+}
+.portfolio-link:hover { color: #bfdbfe; }
+.tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.tag {
+  background: #131929; border: 1px solid #1a2236; border-radius: 6px;
+  padding: 3px 9px; font-size: 0.65rem; color: #475569;
+}
+
+/* ── Note box ── */
+.note {
+  background: rgba(30,58,95,0.15); border: 1px solid #1e3a5f;
+  border-radius: 12px; padding: 18px 20px; margin-top: 20px;
+  font-size: 0.82rem; color: #475569; line-height: 1.6;
+}
+.note strong { color: #7aa2c8; }
+
+/* ── Footer ── */
+footer {
+  margin-top: 60px; padding-top: 20px; border-top: 1px solid #111827;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.68rem; color: #1e3a5f; flex-wrap: wrap; gap: 8px;
+}
+footer a { color: #334155; text-decoration: none; }
+footer a:hover { color: #64748b; }
+</style>
+</head>
+<body>
+<div class="bg-wave"></div>
+<div class="page">
+
+  <header class="header">
+    <div class="eyebrow">Jack · Deliberate UX</div>
+    <h1>What I've been<br>building with AI</h1>
+    <p class="intro">
+      This is a personal workspace — a handful of tools I built over the past few months
+      to scratch my own itches. Flight deal hunting, job market scanning, paper trading.
+      All running 24/7, wired together, accessible from anywhere.
+      Built almost entirely with AI assistance in a fraction of the time it would've taken otherwise.
+      <br><br>
+      Check out the work at <a href="https://deliberateux.com/portfolio" target="_blank">deliberateux.com/portfolio</a>.
+    </p>
+  </header>
+
+  <!-- What's running -->
+  <section class="section">
+    <div class="section-label">What's running</div>
+    <div class="uptime-bar">
+      <div class="uptime-left">
+        <span class="uptime-dot"></span>
+        <span class="uptime-label">All systems</span>
+      </div>
+      <div class="uptime-right">
+        <span class="uptime-pct">100%</span>
+        <span class="uptime-since">running since April 9, 2026</span>
+      </div>
+    </div>
+    <p class="body-text" style="margin-top:16px">Flight deal hunter, job market scanner, paper trading portfolios — a handful of personal tools running 24/7, automated, wired together.</p>
+  </section>
+
+  <!-- What I bring -->
+  <section class="section">
+    <div class="section-label">What I bring</div>
+    <h2>UX + product + AI execution</h2>
+    <p class="body-text">Two decades of UX strategy and product design, now with an AI layer that dramatically shortens the gap between idea and working thing. <strong>I can go from concept to live, interactive product much faster</strong> — and I know what makes something actually worth building.</p>
+
+    <div class="skills">
+      <div class="skill">
+        <div class="skill-name">UX Strategy</div>
+        <div class="skill-desc">Research, systems thinking, user flows, information architecture</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name">Product Design</div>
+        <div class="skill-desc">End-to-end design — from whiteboard to shipped product</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name">Design Systems</div>
+        <div class="skill-desc">Scalable, documented systems for growing teams and products</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name">Rapid Prototyping</div>
+        <div class="skill-desc">Working prototypes, not wireframes — real URLs, real interactions</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name">AI-assisted builds</div>
+        <div class="skill-desc">Live dashboards, data pipelines, automated agents — built fast</div>
+      </div>
+      <div class="skill">
+        <div class="skill-name">Client work</div>
+        <div class="skill-desc">SaaS, fintech, enterprise — communicating well with stakeholders</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Portfolio -->
+  <section class="section">
+    <div class="section-label">Portfolio</div>
+    <div class="portfolio-card">
+      <a class="portfolio-link" href="https://deliberateux.com/portfolio" target="_blank" rel="noopener">
+        deliberateux.com/portfolio ↗
+      </a>
+      <div class="tags">
+        <span class="tag">UX Strategy</span>
+        <span class="tag">Design Systems</span>
+        <span class="tag">Product Design</span>
+        <span class="tag">Prototyping</span>
+        <span class="tag">SaaS</span>
+        <span class="tag">Fintech</span>
+        <span class="tag">Enterprise</span>
+        <span class="tag">AI-assisted</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Note for the friend -->
+  <div class="note">
+    <strong>Hey —</strong> this is just a bookmark, not a deck. If any of this is useful context for what you're working on, great. If there's ever a project where a senior UX/product person + AI execution layer would be useful, I'm around.
+  </div>
+
+  <footer>
+    <span>Jack · Deliberate UX · Portland, OR</span>
+    <a href="https://deliberateux.com" target="_blank">deliberateux.com</a>
+  </footer>
+
+</div>
+</body>
+</html>
